@@ -99,43 +99,6 @@ class GetMeets(Resource):
             return str(e)
 
 
-class GetAllMeets(Resource):
-    def get(self):
-        try:
-            cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings;"
-
-            response = {}
-            cursor.execute(query)
-            for item in cursor:
-                i = 0
-                meet = {}
-                for value in item:
-                    if i == 0:
-                        meet.update({'id': value})
-                        id = str(value)
-                    if i == 1:
-                        meet.update({'name': value})
-                    if i == 2:
-                        meet.update({'description': value})
-                    if i == 3:
-                        meet.update({'ownerid': value})
-                    if i == 4:
-                        meet.update({'members_amount': value})
-                    if i == 5:
-                        meet.update({'start': str(value)})
-                    if i == 6:
-                        meet.update({'finish': str(value)})
-                    if i == 7:
-                        meet.update({'approved': str(value)})
-                    i += 1
-                response.update({'meet' + id: meet})
-
-            return response
-        except BaseException as e:
-            return str(e)
-
-
 class AddMeetMember(Resource):
     def post(self):
         parser = reqparse.RequestParser()
@@ -243,6 +206,26 @@ class AuthUser(Resource):
 
         query = "update members set signature = %s where id = ;"
 
+    def checkuser(self, id, sig):
+        cursor = cnx.cursor(buffered=True)
+
+        query = "select sig from members where idmembers = %s and sig = %s"
+        data = (id, sig)
+        cursor.execute(query, data)
+
+        for item in cursor:
+            for value in item:
+                if str(value) == str(sig):
+                    query = "select rights_level from members where sig = %s;"
+                    data = (sig,)
+                    cursor.execute(query, data)
+                    for item in cursor:
+                        for value in item:
+                            if str(value) == "admin":
+                                return True
+                            else:
+                                return False
+
 
 class AddComment(Resource):
     def post(self):
@@ -313,16 +296,21 @@ class GetMeetComments(Resource):
 
         return response
 
-#TODO: Переделать, добавить проверку подписи
+#TODO: Переделать, добавить проверку подписи и уровня пользователя во все админские методы
 class RemoveComment(Resource):
     def delete(self):
         parser = reqparse.RequestParser()
         parser.add_argument('comment', type=int)
+        parser.add_argument('id', type=int)
+        parser.add_argument('sig', type=int)
+
         args = parser.parse_args()
 
         cursor = cnx.cursor(buffered=True)
 
         _comment = args['comment']
+        _id = args['id']
+        _sig = args['sig']
 
         exec = True
 
@@ -345,32 +333,97 @@ class ApproveMeet(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
+        parser.add_argument('id', type=int)
+        parser.add_argument('sig', type=int)
+
         args = parser.parse_args()
 
         cursor = cnx.cursor(buffered=True)
 
         _meet = args['meet']
-        query = "update meetings set ismoderated = 1 where id = %s;"
-        data = (_meet,)
-        cursor.execute(query, data)
-        cnx.commit()
-        return {'status': 'success'}
+        _id = args['id']
+        _sig = args['sig']
+
+        if AuthUser.checkuser(self, _id, _sig):
+            query = "update meetings set ismoderated = 1 where id = %s;"
+            data = (_meet,)
+            cursor.execute(query, data)
+            cnx.commit()
+            return {'status': 'success'}
+        else:
+            return {'status': 'failed'}
 
 
 class DeApproveMeet(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
+        parser.add_argument('id', type=int)
+        parser.add_argument('sig', type=int)
         args = parser.parse_args()
 
         cursor = cnx.cursor(buffered=True)
 
         _meet = args['meet']
-        query = "update meetings set ismoderated = 0 where id = %s;"
-        data = (_meet,)
-        cursor.execute(query, data)
-        cnx.commit()
-        return {'status': 'success'}
+        _id = args['id']
+        _sig = args['sig']
+        if AuthUser.checkuser(self, _id, _sig):
+            query = "update meetings set ismoderated = 0 where id = %s;"
+            data = (_meet,)
+            cursor.execute(query, data)
+            cnx.commit()
+            return {'status': 'success'}
+        else:
+            return {'status': 'failed'}
+
+
+class GetAllMeets(Resource):
+    def get(self):
+        try:
+            parser = reqparse.RequestParser()
+            parser.add_argument('id', type=int)
+            parser.add_argument('signature', type=int)
+
+            args = parser.parse_args()
+
+            _id = args['id']
+            _sig = args['signature']
+            if AuthUser.checkuser(AuthUser, _id, _sig):
+
+                cursor = cnx.cursor(buffered=True)
+                query = "select * from meetings;"
+
+                response = {}
+                cursor.execute(query)
+                for item in cursor:
+                    i = 0
+                    meet = {}
+                    for value in item:
+                        if i == 0:
+                            meet.update({'id': value})
+                            id = str(value)
+                        if i == 1:
+                            meet.update({'name': value})
+                        if i == 2:
+                            meet.update({'description': value})
+                        if i == 3:
+                            meet.update({'ownerid': value})
+                        if i == 4:
+                            meet.update({'members_amount': value})
+                        if i == 5:
+                            meet.update({'start': str(value)})
+                        if i == 6:
+                            meet.update({'finish': str(value)})
+                        if i == 7:
+                            meet.update({'approved': str(value)})
+                        i += 1
+                    response.update({'meet' + id: meet})
+
+                return response
+            else:
+                return {'status': 'failed'}
+        except BaseException as e:
+            return str(e)
 
 
 api.add_resource(TestConnection, '/TestConnection')
