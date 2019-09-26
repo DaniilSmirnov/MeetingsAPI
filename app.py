@@ -131,7 +131,6 @@ class GetAllMeets(Resource):
                     i += 1
                 response.update({'meet' + id: meet})
 
-            #response = json.dumps(response)
             return response
         except BaseException as e:
             return str(e)
@@ -155,34 +154,32 @@ class AddMeetMember(Resource):
             data = (_id_client, _signature,)
             cursor.execute(query, data)
 
-            exec = False
-
             for item in cursor:
                 for value in item:
                     if str(value) == _signature:
-                        exec = True
 
-            if exec:
-                query = "select idmember from participation where idmember = %s and idmeeting = %s;"
-                data = (_id_client, _meet, )
-                cursor.execute(query, data)
+                        query = "select idmember from participation where idmember = %s and idmeeting = %s;"
+                        data = (_id_client, _meet, )
+                        cursor.execute(query, data)
 
-                for item in cursor:
-                    for value in item:
-                        if str(value) == str(_id_client):
-                            return {'failed': 'User is in meeting yet'}
+                        for item in cursor:
+                            for value in item:
+                                if str(value) == str(_id_client):
+                                    return {'failed': 'User is in meeting yet'}
 
-            if exec:
-                query = "insert into participation values (default, %s, %s);"
-                data = (_meet, _id_client, )
-                cursor.execute(query, data)
-                query = "update meetings set members_amount = members_amount + 1 where id = %s"
-                data = (_meet,)
-                cursor.execute(query, data)
-                cnx.commit()
-                return {'status': 'success'}
-            else:
-                return {'failed': 'signature is not valid'}
+                        query = "insert into participation values (default, %s, %s);"
+                        data = (_meet, _id_client, )
+                        cursor.execute(query, data)
+                        query = "update meetings set members_amount = members_amount + 1 where id = %s"
+                        data = (_meet,)
+                        cursor.execute(query, data)
+                        cnx.commit()
+                        return {'status': 'success'}
+                    else:
+                        return {'failed': 'signature is not valid'}
+
+                    return {'status': 'failed'}
+
         except BaseException as e:
             return e
 
@@ -205,37 +202,32 @@ class RemoveMeetMember(Resource):
         data = (_id_client, _signature,)
         cursor.execute(query, data)
 
-        exec = False
-
         for item in cursor:
             for value in item:
                 if str(value) == _signature:
-                    exec = True
 
-        if exec:
-            query = "select idmember from participation where idmember = %s and idmeeting = %s;"
-            data = (_id_client, _meet, )
-            cursor.execute(query, data)
+                    query = "select idmember from participation where idmember = %s and idmeeting = %s;"
+                    data = (_id_client, _meet, )
+                    cursor.execute(query, data)
 
-            for item in cursor:
-                for value in item:
-                    if str(value) == str(_id_client):
-                        exec = True
-        else:
-            return {'failed': 'user is not on meet'}
+                    for item in cursor:
+                        for value in item:
+                            if str(value) != str(_id_client):
+                                return {'failed': 'user is not on meet'}
 
-        if exec:
-            query = "delete from participation where idmember = %s and idmeeting = %s;"
-            data = (_meet, _id_client, )
-            cursor.execute(query, data)
-            cnx.commit()
-            query = "update meetings set members_amount = members_amount -1 where id = %s and members_amount > 0"
-            data = (_meet, )
-            cursor.execute(query, data)
-            cnx.commit()
-            return {'status': 'success'}
+                    query = "delete from participation where idmember = %s and idmeeting = %s;"
+                    data = (_meet, _id_client, )
+                    cursor.execute(query, data)
+                    cnx.commit()
+                    query = "update meetings set members_amount = members_amount -1 where id = %s and members_amount > 0"
+                    data = (_meet, )
+                    cursor.execute(query, data)
+                    cnx.commit()
+                    return {'status': 'success'}
         else:
             return {'failed': 'signature is not valid'}
+
+        return {'status': 'failed'}
 
 
 class AuthUser(Resource):
@@ -272,21 +264,19 @@ class AddComment(Resource):
         data = (_id_client, _signature,)
         cursor.execute(query, data)
 
-        exec = False
-
         for item in cursor:
             for value in item:
                 if str(value) == _signature:
-                    exec = True
 
-        if exec:
-            query = "insert into comments values (default, %s, %s, %s);"
-            data = (_comment, _id_client, _meet)
-            cursor.execute(query, data)
-            cnx.commit()
-            return {'status': 'success'}
-        else:
-            return {'failed': 'signature is not valid'}
+                    query = "insert into comments values (default, %s, %s, %s);"
+                    data = (_comment, _id_client, _meet)
+                    cursor.execute(query, data)
+                    cnx.commit()
+                    return {'status': 'success'}
+                else:
+                    return {'failed': 'signature is not valid'}
+
+        return {'status': 'failed'}
 
 
 class GetMeetComments(Resource):
@@ -323,7 +313,7 @@ class GetMeetComments(Resource):
 
         return response
 
-
+#TODO: Переделать, добавить проверку подписи
 class RemoveComment(Resource):
     def delete(self):
         parser = reqparse.RequestParser()
