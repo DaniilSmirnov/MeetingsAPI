@@ -126,6 +126,8 @@ class GetAllMeets(Resource):
                         meet.update({'start': str(value)})
                     if i == 6:
                         meet.update({'finish': str(value)})
+                    if i == 7:
+                        meet.update({'approved': str(value)})
                     i += 1
                 response.update({'meet' + id: meet})
 
