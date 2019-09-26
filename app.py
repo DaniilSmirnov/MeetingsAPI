@@ -50,15 +50,15 @@ class AddMeet(Resource):
             for item in cursor:
                 for value in item:
                     if str(value) == _signature:
-                        pass
+                        query = "insert into meetings values (default, %s, %s, %s, default, %s, %s, default)"
+                        data = (_name, _description, _owner_id, _start, _finish)
+                        cursor.execute(query, data)
+                        cnx.commit()
+                        return {'status': 'success'}
                     else:
                         return {'status': 'Signature is not valid'}
 
-            query = "insert into meetings values (default, %s, %s, %s, default, %s, %s, default)"
-            data = (_name, _description, _owner_id, _start, _finish)
-            cursor.execute(query, data)
-            cnx.commit()
-            return {'status': 'success'}
+            return {'status': "failed"}
 
         except BaseException:
             return {'status': "failed"}
@@ -70,7 +70,7 @@ class GetMeets(Resource):
             cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where finish > current_date() and ismoderated = 1;"
 
-            response = {}
+            response = []
             cursor.execute(query)
             for item in cursor:
                 i = 0
@@ -92,8 +92,8 @@ class GetMeets(Resource):
                     if i == 6:
                         meet.update({'finish': str(value)})
                     i += 1
-                response.update({'meet' + id: meet})
-
+                #response.update({'meet' + id: meet})
+                response.append(meet)
             return response
         except BaseException as e:
             return str(e)
