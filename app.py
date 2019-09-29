@@ -296,7 +296,7 @@ class GetMeetComments(Resource):
 
         return response
 
-#TODO: Переделать, добавить проверку подписи и уровня пользователя во все админские методы
+
 class RemoveComment(Resource):
     def delete(self):
         parser = reqparse.RequestParser()
