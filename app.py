@@ -275,7 +275,7 @@ class GetMeetComments(Resource):
         query = "select * from comments where meetingid = %s"
         data = (_meet,)
 
-        response = {}
+        response = []
         cursor.execute(query, data)
         for item in cursor:
             i = 0
@@ -292,7 +292,7 @@ class GetMeetComments(Resource):
                     comment.update({'meetingid': value})
 
                 i += 1
-            response.update({'comment' + id: comment})
+            response.append(comment)
 
         return response
 
