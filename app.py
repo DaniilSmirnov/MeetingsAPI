@@ -54,14 +54,14 @@ class AddMeet(Resource):
                         data = (_name, _description, _owner_id, _start, _finish)
                         cursor.execute(query, data)
                         cnx.commit()
-                        return {'status': 'success'}
+                        return {'success': True}
                     else:
-                        return {'status': 'Signature is not valid'}
+                        return {'success': False, 'failed': '403'}
 
-            return {'status': "failed"}
+            return {'success': True}
 
         except BaseException:
-            return {'status': "failed"}
+            return {'success': False}
 
 
 class GetMeets(Resource):
@@ -92,7 +92,6 @@ class GetMeets(Resource):
                     if i == 6:
                         meet.update({'finish': str(value)})
                     i += 1
-                #response.update({'meet' + id: meet})
                 response.append(meet)
             return response
         except BaseException as e:
@@ -137,14 +136,14 @@ class AddMeetMember(Resource):
                         data = (_meet,)
                         cursor.execute(query, data)
                         cnx.commit()
-                        return {'status': 'success'}
+                        return {'success': True, 'failed': '403'}
                     else:
-                        return {'failed': 'signature is not valid'}
+                        return {'success': False}
 
-                    return {'status': 'failed'}
+                    return {'success': False}
 
         except BaseException as e:
-            return e
+            return {'success': False}
 
 
 class RemoveMeetMember(Resource):
@@ -186,11 +185,11 @@ class RemoveMeetMember(Resource):
                     data = (_meet, )
                     cursor.execute(query, data)
                     cnx.commit()
-                    return {'status': 'success'}
+                    return {'success': True}
         else:
-            return {'failed': 'signature is not valid'}
+            return {'success': False, 'failed': '403'}
 
-        return {'status': 'failed'}
+        return {'success': False}
 
 
 class AuthUser(Resource):
@@ -255,11 +254,11 @@ class AddComment(Resource):
                     data = (_comment, _id_client, _meet)
                     cursor.execute(query, data)
                     cnx.commit()
-                    return {'status': 'success'}
+                    return {'success': True}
                 else:
-                    return {'failed': 'signature is not valid'}
+                    return {'success': False, 'failed': '403'}
 
-        return {'status': 'failed'}
+        return {'success': False}
 
 
 class GetMeetComments(Resource):
@@ -320,13 +319,13 @@ class RemoveComment(Resource):
         for item in cursor:
             for value in item:
                 if str(value) != "True":
-                    return {'status': 'Comment doesnt exists'}
+                    return {'success': False, 'failed': 'Comment doesnt exists'}
 
         if exec:
             query = "delete from comments where idcomments = %s;"
             cursor.execute(query, data)
             cnx.commit()
-            return {'status': 'success'}
+            return {'success': False}
 
 
 class ApproveMeet(Resource):
@@ -349,9 +348,9 @@ class ApproveMeet(Resource):
             data = (_meet,)
             cursor.execute(query, data)
             cnx.commit()
-            return {'status': 'success'}
+            return {'success': True}
         else:
-            return {'status': 'failed'}
+            return {'success': False}
 
 
 class DeApproveMeet(Resource):
@@ -372,9 +371,9 @@ class DeApproveMeet(Resource):
             data = (_meet,)
             cursor.execute(query, data)
             cnx.commit()
-            return {'status': 'success'}
+            return {'success': True}
         else:
-            return {'status': 'failed'}
+            return {'success': False}
 
 
 class GetAllMeets(Resource):
@@ -421,7 +420,7 @@ class GetAllMeets(Resource):
 
                 return response
             else:
-                return {'status': 'failed'}
+                return {'success': False}
         except BaseException as e:
             return str(e)
 
