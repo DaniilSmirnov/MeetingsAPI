@@ -19,7 +19,7 @@ cnx = mysql.connector.connect(user='root', password='i130813',
 while 1:
     cursor = cnx.cursor()
     import time
-    time.sleep(30)
+    time.sleep(29)
     cursor.execute("desc;")
 
 
