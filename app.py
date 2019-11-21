@@ -16,6 +16,12 @@ cnx = mysql.connector.connect(user='root', password='i130813',
                                   host='127.0.0.1',
                                   database='mydb')
 
+while 1:
+    cursor = cnx.cursor()
+    import time
+    time.sleep(30)
+    cursor.execute("desc;")
+
 
 class TestConnection(Resource):
     def get(self):
@@ -301,7 +307,7 @@ class RemoveComment(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('comment', type=int)
         parser.add_argument('id', type=int)
-        parser.add_argument('sig', type=int)
+        parser.add_argument('signature', type=int)
 
         args = parser.parse_args()
 
@@ -309,7 +315,7 @@ class RemoveComment(Resource):
 
         _comment = args['comment']
         _id = args['id']
-        _sig = args['sig']
+        _sig = args['signature']
 
         exec = True
 
@@ -333,7 +339,7 @@ class ApproveMeet(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
         parser.add_argument('id', type=int)
-        parser.add_argument('sig', type=int)
+        parser.add_argument('signature', type=int)
 
         args = parser.parse_args()
 
@@ -341,7 +347,7 @@ class ApproveMeet(Resource):
 
         _meet = args['meet']
         _id = args['id']
-        _sig = args['sig']
+        _sig = args['signature']
 
         if AuthUser.checkuser(self, _id, _sig):
             query = "update meetings set ismoderated = 1 where id = %s;"
