@@ -42,10 +42,18 @@ class AddMeet(Resource):
         _finish = args['finish']
         _photo = args['photo']
 
+        if (len(_name) == 0) or _name.isspace() or _name.isdigit():
+            return {'failed': 'invalid name'}
+        if len(_description) == 0 or _description.isspace() or _description.isdigit():
+            return {'failed': 'invalid name'}
+
         if 'xvk' in request.headers:
             if not AuthUser.check_sign(AuthUser, request):
                 return {'failed': '403'}
         else:
+            return {'failed': '403'}
+
+        if not AuthUser.validate_user(self, _owner_id, request):
             return {'failed': '403'}
 
         try:
@@ -74,6 +82,31 @@ class GetMeets(Resource):
     def get(self):
         try:
 
+            def ismember(meet, id):
+                cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                              host='0.0.0.0',
+                                              database='meets')
+
+                cursor = cnx.cursor(buffered=True)
+                query = "select count(id) from meetings where id = %s and id in (select idmeeting from participation where idmember = %s);"
+                data = (meet, id)
+                cursor.execute(query, data)
+
+                for item in cursor:
+                    for value in item:
+                        if value == 1:
+                            return 1
+                        else:
+                            return 0
+
+                cnx.close()
+
+            parser = reqparse.RequestParser()
+            parser.add_argument('id', type=int)
+            args = parser.parse_args()
+
+            _id_client = args['id']
+
             if 'xvk' in request.headers:
                 if not AuthUser.check_sign(AuthUser, request):
                     return {'failed': '403'}
@@ -95,6 +128,7 @@ class GetMeets(Resource):
                 for value in item:
                     if i == 0:
                         meet.update({'id': value})
+                        id = value
                     if i == 1:
                         meet.update({'name': value})
                     if i == 2:
@@ -109,6 +143,8 @@ class GetMeets(Resource):
                         meet.update({'finish': str(value)})
                     if i == 8:
                         meet.update({'photo': str(value)})
+                    if i == 9:
+                        meet.update({'ismember': ismember(id, _id_client)})
                     i += 1
                 response.append(meet)
             cursor.close()
@@ -522,6 +558,14 @@ class DeApproveMeet(Resource):
 
         _id = args['id']
         if AuthUser.checkuser(AuthUser, _id, request):
+            query = "select ismoderated from meetings where id = %s;"
+            data = (_meet,)
+            cursor.execute(query, data)
+            for item in cursor:
+                for value in item:
+                    if value == 0:
+                        return {'failed': 'already deapproved'}
+
             query = "update meetings set ismoderated = 0 where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
@@ -567,7 +611,6 @@ class GetAllMeets(Resource):
                     for value in item:
                         if i == 0:
                             meet.update({'id': value})
-                            id = str(value)
                         if i == 1:
                             meet.update({'name': value})
                         if i == 2:
@@ -581,7 +624,7 @@ class GetAllMeets(Resource):
                         if i == 6:
                             meet.update({'finish': str(value)})
                         if i == 7:
-                            meet.update({'approved': str(value)})
+                            meet.update({'approved': int(value)})
                         if i == 8:
                             meet.update({'photo': str(value)})
                         i += 1
