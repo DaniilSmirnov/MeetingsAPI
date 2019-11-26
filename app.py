@@ -59,9 +59,14 @@ class AddMeet(Resource):
             data = (_name, _description, _owner_id, _start, _finish, _photo)
             cursor.execute(query, data)
             cnx.commit()
+
+            cursor.close()
+            cnx.close()
             return {'success': True}
 
         except BaseException as e:
+            cursor.close()
+            cnx.close()
             return {'error': str(e)}
 
 
@@ -106,8 +111,12 @@ class GetMeets(Resource):
                         meet.update({'photo': str(value)})
                     i += 1
                 response.append(meet)
+            cursor.close()
+            cnx.close()
             return response
         except BaseException as e:
+            cursor.close()
+            cnx.close()
             return str(e)
 
 
@@ -152,9 +161,13 @@ class AddMeetMember(Resource):
             cursor.execute(query, data)
             cnx.commit()
 
+            cursor.close()
+            cnx.close()
             return {'success': True}
 
         except BaseException as e:
+            cursor.close()
+            cnx.close()
             return {'success': False}
 
 
@@ -197,6 +210,9 @@ class RemoveMeetMember(Resource):
             data = (_meet, )
             cursor.execute(query, data)
             cnx.commit()
+
+            cursor.close()
+            cnx.close()
             return {'success': True}
 
 
@@ -234,8 +250,12 @@ class AuthUser(Resource):
         for item in cursor:
             for value in item:
                 if str(value) == "admin":
+                    cursor.close()
+                    cnx.close()
                     return True
                 else:
+                    cursor.close()
+                    cnx.close()
                     return False
 
 
@@ -267,6 +287,9 @@ class AddComment(Resource):
         data = (_comment, _id_client, _meet)
         cursor.execute(query, data)
         cnx.commit()
+
+        cursor.close()
+        cnx.close()
         return {'success': True}
 
 
@@ -314,6 +337,8 @@ class GetMeetComments(Resource):
                 i += 1
             response.append(comment)
 
+        cursor.close()
+        cnx.close()
         return response
 
 
@@ -351,6 +376,9 @@ class RemoveComment(Resource):
         query = "delete from comments where idcomments = %s;"
         cursor.execute(query, data)
         cnx.commit()
+
+        cursor.close()
+        cnx.close()
         return {'success': False}
 
 
@@ -376,8 +404,12 @@ class ApproveMeet(Resource):
             data = (_meet,)
             cursor.execute(query, data)
             cnx.commit()
+            cursor.close()
+            cnx.close()
             return {'success': True}
         else:
+            cursor.close()
+            cnx.close()
             return {'success': False}
 
 
@@ -401,8 +433,12 @@ class DeApproveMeet(Resource):
             data = (_meet,)
             cursor.execute(query, data)
             cnx.commit()
+            cursor.close()
+            cnx.close()
             return {'success': True}
         else:
+            cursor.close()
+            cnx.close()
             return {'success': False}
 
 
@@ -453,8 +489,11 @@ class GetAllMeets(Resource):
                         i += 1
                     response.update({'meet' + id: meet})
 
+                cursor.close()
+                cnx.close()
                 return response
             else:
+
                 return {'success': False}
         except BaseException as e:
             return str(e)
