@@ -120,6 +120,60 @@ class GetMeets(Resource):
             return str(e)
 
 
+class GetUserMeets(Resource):
+    def get(self):
+        try:
+            parser = reqparse.RequestParser()
+            parser.add_argument('id', type=int)
+            args = parser.parse_args()
+
+            _id_client = args['id']
+
+            if 'xvk' in request.headers:
+                if not AuthUser.check_sign(AuthUser, request):
+                    return {'failed': '403'}
+            else:
+                return {'failed': '403'}
+
+            cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                          host='0.0.0.0',
+                                          database='meets')
+
+            cursor = cnx.cursor(buffered=True)
+            query = "select * from meetings where finish > current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s);"
+            data = (_id_client,)
+            response = []
+            cursor.execute(query, data)
+            for item in cursor:
+                i = 0
+                meet = {}
+                for value in item:
+                    if i == 0:
+                        meet.update({'id': value})
+                    if i == 1:
+                        meet.update({'name': value})
+                    if i == 2:
+                        meet.update({'description': value})
+                    if i == 3:
+                        meet.update({'ownerid': value})
+                    if i == 4:
+                        meet.update({'members_amount': value})
+                    if i == 5:
+                        meet.update({'start': str(value)})
+                    if i == 6:
+                        meet.update({'finish': str(value)})
+                    if i == 8:
+                        meet.update({'photo': str(value)})
+                    i += 1
+                response.append(meet)
+            cursor.close()
+            cnx.close()
+            return response
+        except BaseException as e:
+            cursor.close()
+            cnx.close()
+            return str(e)
+
 class AddMeetMember(Resource):
     def post(self):
         parser = reqparse.RequestParser()
