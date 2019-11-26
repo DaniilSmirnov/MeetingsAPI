@@ -96,6 +96,8 @@ class GetMeets(Resource):
                         meet.update({'start': str(value)})
                     if i == 6:
                         meet.update({'finish': str(value)})
+                    if i == 8:
+                        meet.update({'photo': str(value)})
                     i += 1
                 response.append(meet)
             return response
@@ -456,6 +458,8 @@ class GetAllMeets(Resource):
                             meet.update({'finish': str(value)})
                         if i == 7:
                             meet.update({'approved': str(value)})
+                        if i == 8:
+                            meet.update({'photo': str(value)})
                         i += 1
                     response.update({'meet' + id: meet})
 
