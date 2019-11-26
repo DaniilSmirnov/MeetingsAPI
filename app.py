@@ -174,6 +174,7 @@ class GetUserMeets(Resource):
             cnx.close()
             return str(e)
 
+
 class AddMeetMember(Resource):
     def post(self):
         parser = reqparse.RequestParser()
@@ -291,7 +292,24 @@ class AuthUser(Resource):
         else:
             return False
 
-    def checkuser(self, id):
+    def validate_user(self, id, request):
+        launch_params = request.headers.get('xvk')
+        launch_params = "https://vargasoff.com:8000?" + launch_params
+        launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
+
+        if not str(launch_params.get('vk_user_id')) == str(id):
+            return False
+        else:
+            return True
+
+    def checkuser(self, id, request):
+        launch_params = request.headers.get('xvk')
+        launch_params = "https://vargasoff.com:8000?" + launch_params
+        launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
+
+        if not str(launch_params.get('vk_user_id')) == str(id):
+            return {'failed': '403'}
+
         cnx = mysql.connector.connect(user='root', password='misha_benich228',
                                       host='0.0.0.0',
                                       database='meets')
@@ -451,9 +469,14 @@ class ApproveMeet(Resource):
         cursor = cnx.cursor(buffered=True)
 
         _meet = args['meet']
-        _id = args['id']
+        if 'xvk' in request.headers:
+            if not AuthUser.check_sign(AuthUser, request):
+                return {'failed': '403'}
+        else:
+            return {'failed': '403'}
 
-        if AuthUser.checkuser(self, _id):
+        _id = args['id']
+        if AuthUser.checkuser(AuthUser, _id, request):
             query = "update meetings set ismoderated = 1 where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
@@ -481,8 +504,14 @@ class DeApproveMeet(Resource):
         cursor = cnx.cursor(buffered=True)
 
         _meet = args['meet']
+        if 'xvk' in request.headers:
+            if not AuthUser.check_sign(AuthUser, request):
+                return {'failed': '403'}
+        else:
+            return {'failed': '403'}
+
         _id = args['id']
-        if AuthUser.checkuser(self, _id):
+        if AuthUser.checkuser(AuthUser, _id, request):
             query = "update meetings set ismoderated = 0 where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
@@ -504,9 +533,14 @@ class GetAllMeets(Resource):
 
             args = parser.parse_args()
 
+            if 'xvk' in request.headers:
+                if not AuthUser.check_sign(AuthUser, request):
+                    return {'failed': '403'}
+            else:
+                return {'failed': '403'}
+
             _id = args['id']
-            _sig = args['signature']
-            if AuthUser.checkuser(AuthUser, _id):
+            if AuthUser.checkuser(AuthUser, _id, request):
 
                 cnx = mysql.connector.connect(user='root', password='misha_benich228',
                                               host='0.0.0.0',
@@ -515,7 +549,7 @@ class GetAllMeets(Resource):
                 cursor = cnx.cursor(buffered=True)
                 query = "select * from meetings;"
 
-                response = {}
+                response = []
                 cursor.execute(query)
                 for item in cursor:
                     i = 0
@@ -541,7 +575,7 @@ class GetAllMeets(Resource):
                         if i == 8:
                             meet.update({'photo': str(value)})
                         i += 1
-                    response.update({'meet' + id: meet})
+                    response.append(meet)
 
                 cursor.close()
                 cnx.close()
@@ -560,6 +594,7 @@ api.add_resource(AddMeet, '/AddMeet')
 
 api.add_resource(AddMeetMember, '/AddMeetMember')
 api.add_resource(RemoveMeetMember, '/RemoveMeetMember')
+api.add_resource(GetUserMeets, '/GetUserMeets')
 
 api.add_resource(GetMeetComments, '/GetMeetComments')
 api.add_resource(AddComment, '/AddComment')
