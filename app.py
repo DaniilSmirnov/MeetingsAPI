@@ -198,14 +198,13 @@ class AddMeetMember(Resource):
 
             cursor = cnx.cursor(buffered=True)
 
-
-            query = "select idmember from participation where idmember = %s and idmeeting = %s;"
+            query = "select count(idmember) from participation where idmember = %s and idmeeting = %s;"
             data = (_id_client, _meet, )
             cursor.execute(query, data)
 
             for item in cursor:
                 for value in item:
-                    if str(value) == str(_id_client):
+                    if value != 0:
                         return {'failed': 'User is in meeting yet'}
 
             query = "insert into participation values (default, %s, %s);"
@@ -227,38 +226,39 @@ class AddMeetMember(Resource):
 
 
 class RemoveMeetMember(Resource):
-    def delete(self):
+    def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int)
         parser.add_argument('meet', type=int)
         args = parser.parse_args()
+        try:
+            cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                          host='0.0.0.0',
+                                          database='meets')
 
-        cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                      host='0.0.0.0',
-                                      database='meets')
+            cursor = cnx.cursor()
 
-        cursor = cnx.cursor(buffered=True)
+            _id_client = args['id']
+            _meet = args['meet']
 
-        _id_client = args['id']
-        _meet = args['meet']
-
-        if 'xvk' in request.headers:
-            if not AuthUser.check_sign(AuthUser, request):
+            if 'xvk' in request.headers:
+                if not AuthUser.check_sign(AuthUser, request):
+                    return {'failed': '403'}
+            else:
                 return {'failed': '403'}
-        else:
-            return {'failed': '403'}
 
-            query = "select idmember from participation where idmember = %s and idmeeting = %s;"
+            query = "select count(idmember) from participation where idmember = %s and idmeeting = %s;"
             data = (_id_client, _meet, )
             cursor.execute(query, data)
 
             for item in cursor:
                 for value in item:
-                    if str(value) != str(_id_client):
-                        return {'failed': 'user is not on meet'}
+                    print(value)
+                    if value == 0:
+                        return {'failed': 'user is not in meet'}
 
             query = "delete from participation where idmember = %s and idmeeting = %s;"
-            data = (_meet, _id_client, )
+            data = (_id_client, _meet, )
             cursor.execute(query, data)
             cnx.commit()
             query = "update meetings set members_amount = members_amount -1 where id = %s and members_amount > 0"
@@ -269,6 +269,8 @@ class RemoveMeetMember(Resource):
             cursor.close()
             cnx.close()
             return {'success': True}
+        except BaseException:
+            return {'success': False}
 
 
 class AuthUser(Resource):
@@ -477,6 +479,14 @@ class ApproveMeet(Resource):
 
         _id = args['id']
         if AuthUser.checkuser(AuthUser, _id, request):
+            query = "select ismoderated from meetings where id = %s;"
+            data = (_meet, )
+            cursor.execute(query, data)
+            for item in cursor:
+                for value in item:
+                    if value == 1:
+                        return {'failed': 'already approved'}
+
             query = "update meetings set ismoderated = 1 where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
