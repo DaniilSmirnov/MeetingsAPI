@@ -12,16 +12,6 @@ app.config['CORS_HEADERS'] = 'Access-Control-Allow-Origin: *'
 cors = CORS(app)
 api = Api(app)
 
-cnx = mysql.connector.connect(user='root', password='i130813',
-                                  host='127.0.0.1',
-                                  database='mydb')
-
-while 1:
-    cursor = cnx.cursor()
-    import time
-    time.sleep(29)
-    cursor.execute("desc;")
-
 
 class TestConnection(Resource):
     def get(self):
@@ -35,9 +25,10 @@ class AddMeet(Resource):
         parser.add_argument('name', type=str)
         parser.add_argument('description', type=str)
         parser.add_argument('owner_id', type=int)
-        parser.add_argument('sig', type=str)
+        parser.add_argument('sig', type=int)
         parser.add_argument('start', type=str)
         parser.add_argument('finish', type=str)
+        parser.add_argument('photo', type=str)
         args = parser.parse_args()
 
         _name = args['name']
@@ -46,8 +37,13 @@ class AddMeet(Resource):
         _owner_id = args['owner_id']
         _start = args['start']
         _finish = args['finish']
+        _photo = args['photo']
 
         try:
+            cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                          host='0.0.0.0',
+                                          database='meets')
+
             cursor = cnx.cursor(buffered=True)
             query = "select sig from members where idmembers = %s and sig = %s"
             data = (_owner_id, _signature,)
@@ -55,24 +51,28 @@ class AddMeet(Resource):
 
             for item in cursor:
                 for value in item:
-                    if str(value) == _signature:
-                        query = "insert into meetings values (default, %s, %s, %s, default, %s, %s, default)"
-                        data = (_name, _description, _owner_id, _start, _finish)
+                    if str(value) == str(_signature):
+                        query = "insert into meetings values (default, %s, %s, %s, default, %s, %s, default, %s)"
+                        data = (_name, _description, _owner_id, _start, _finish, _photo)
                         cursor.execute(query, data)
                         cnx.commit()
                         return {'success': True}
                     else:
-                        return {'success': False, 'failed': '403'}
+                        return {'failed': '403'}
 
             return {'success': True}
 
-        except BaseException:
-            return {'success': False}
+        except BaseException as e:
+            return {'error' : str(e)}
 
 
 class GetMeets(Resource):
     def get(self):
         try:
+            cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                          host='0.0.0.0',
+                                          database='meets')
+
             cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where finish > current_date() and ismoderated = 1;"
 
@@ -84,7 +84,6 @@ class GetMeets(Resource):
                 for value in item:
                     if i == 0:
                         meet.update({'id': value})
-                        id = str(value)
                     if i == 1:
                         meet.update({'name': value})
                     if i == 2:
@@ -117,6 +116,10 @@ class AddMeetMember(Resource):
         _meet = args['meet']
 
         try:
+            cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                          host='0.0.0.0',
+                                          database='meets')
+
             cursor = cnx.cursor(buffered=True)
             query = "select sig from members where idmembers = %s and sig = %s"
             data = (_id_client, _signature,)
@@ -159,6 +162,10 @@ class RemoveMeetMember(Resource):
         parser.add_argument('signature', type=str)
         parser.add_argument('meet', type=int)
         args = parser.parse_args()
+
+        cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                      host='0.0.0.0',
+                                      database='meets')
 
         cursor = cnx.cursor(buffered=True)
 
@@ -212,6 +219,10 @@ class AuthUser(Resource):
         query = "update members set signature = %s where id = ;"
 
     def checkuser(self, id, sig):
+        cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                      host='0.0.0.0',
+                                      database='meets')
+
         cursor = cnx.cursor(buffered=True)
 
         query = "select sig from members where idmembers = %s and sig = %s"
@@ -240,6 +251,10 @@ class AddComment(Resource):
         parser.add_argument('meet', type=int)
         parser.add_argument('comment', type=str)
         args = parser.parse_args()
+
+        cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                      host='0.0.0.0',
+                                      database='meets')
 
         cursor = cnx.cursor(buffered=True)
 
@@ -272,6 +287,10 @@ class GetMeetComments(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=str)
         args = parser.parse_args()
+
+        cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                      host='0.0.0.0',
+                                      database='meets')
 
         cursor = cnx.cursor(buffered=True)
 
@@ -307,15 +326,19 @@ class RemoveComment(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('comment', type=int)
         parser.add_argument('id', type=int)
-        parser.add_argument('signature', type=int)
+        parser.add_argument('sig', type=int)
 
         args = parser.parse_args()
+
+        cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                      host='0.0.0.0',
+                                      database='meets')
 
         cursor = cnx.cursor(buffered=True)
 
         _comment = args['comment']
         _id = args['id']
-        _sig = args['signature']
+        _sig = args['sig']
 
         exec = True
 
@@ -339,15 +362,19 @@ class ApproveMeet(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
         parser.add_argument('id', type=int)
-        parser.add_argument('signature', type=int)
+        parser.add_argument('sig', type=int)
 
         args = parser.parse_args()
+
+        cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                      host='0.0.0.0',
+                                      database='meets')
 
         cursor = cnx.cursor(buffered=True)
 
         _meet = args['meet']
         _id = args['id']
-        _sig = args['signature']
+        _sig = args['sig']
 
         if AuthUser.checkuser(self, _id, _sig):
             query = "update meetings set ismoderated = 1 where id = %s;"
@@ -366,6 +393,10 @@ class DeApproveMeet(Resource):
         parser.add_argument('id', type=int)
         parser.add_argument('sig', type=int)
         args = parser.parse_args()
+
+        cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                      host='0.0.0.0',
+                                      database='meets')
 
         cursor = cnx.cursor(buffered=True)
 
@@ -394,6 +425,10 @@ class GetAllMeets(Resource):
             _id = args['id']
             _sig = args['signature']
             if AuthUser.checkuser(AuthUser, _id, _sig):
+
+                cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                              host='0.0.0.0',
+                                              database='meets')
 
                 cursor = cnx.cursor(buffered=True)
                 query = "select * from meetings;"
@@ -449,4 +484,5 @@ api.add_resource(GetAllMeets, '/admin/GetAllMeets')
 #11
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    context = ('/etc/ssl/vargasoff.ru.crt', '/etc/ssl/private.key')
+    app.run(host='0.0.0.0', port='8000', ssl_context=context)
