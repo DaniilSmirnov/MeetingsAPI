@@ -30,14 +30,12 @@ class AddMeet(Resource):
         parser.add_argument('name', type=str)
         parser.add_argument('description', type=str)
         parser.add_argument('owner_id', type=int)
-        parser.add_argument('sig', type=int)
         parser.add_argument('start', type=str)
         parser.add_argument('finish', type=str)
         parser.add_argument('photo', type=str)
         args = parser.parse_args()
 
         _name = args['name']
-        _signature = args['sig']
         _description = args['description']
         _owner_id = args['owner_id']
         _start = args['start']
@@ -56,25 +54,15 @@ class AddMeet(Resource):
                                           database='meets')
 
             cursor = cnx.cursor(buffered=True)
-            query = "select sig from members where idmembers = %s and sig = %s"
-            data = (_owner_id, _signature,)
+
+            query = "insert into meetings values (default, %s, %s, %s, default, %s, %s, default, %s)"
+            data = (_name, _description, _owner_id, _start, _finish, _photo)
             cursor.execute(query, data)
-
-            for item in cursor:
-                for value in item:
-                    if str(value) == str(_signature):
-                        query = "insert into meetings values (default, %s, %s, %s, default, %s, %s, default, %s)"
-                        data = (_name, _description, _owner_id, _start, _finish, _photo)
-                        cursor.execute(query, data)
-                        cnx.commit()
-                        return {'success': True}
-                    else:
-                        return {'failed': '403'}
-
+            cnx.commit()
             return {'success': True}
 
         except BaseException as e:
-            return {'error' : str(e)}
+            return {'error': str(e)}
 
 
 class GetMeets(Resource):
