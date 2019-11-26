@@ -3,7 +3,12 @@ from flask_restful import Resource, Api, reqparse
 from flask import request
 import mysql.connector
 from flask_cors import CORS
-import json
+import hashlib
+from base64 import b64encode
+from collections import OrderedDict
+from hashlib import sha256
+from hmac import HMAC
+from urllib.parse import urlparse, parse_qsl, urlencode
 
 app = Flask(__name__)
 
@@ -39,6 +44,12 @@ class AddMeet(Resource):
         _finish = args['finish']
         _photo = args['photo']
 
+        if 'xvk' in request.headers:
+            if not AuthUser.check_sign(AuthUser, request):
+                return {'failed': '403'}
+        else:
+            return {'failed': '403'}
+
         try:
             cnx = mysql.connector.connect(user='root', password='misha_benich228',
                                           host='0.0.0.0',
@@ -69,6 +80,13 @@ class AddMeet(Resource):
 class GetMeets(Resource):
     def get(self):
         try:
+
+            if 'xvk' in request.headers:
+                if not AuthUser.check_sign(AuthUser, request):
+                    return {'failed': '403'}
+            else:
+                return {'failed': '403'}
+
             cnx = mysql.connector.connect(user='root', password='misha_benich228',
                                           host='0.0.0.0',
                                           database='meets')
@@ -109,13 +127,17 @@ class AddMeetMember(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int)
-        parser.add_argument('signature', type=str)
         parser.add_argument('meet', type=int)
         args = parser.parse_args()
 
         _id_client = args['id']
-        _signature = args['signature']
         _meet = args['meet']
+
+        if 'xvk' in request.headers:
+            if not AuthUser.check_sign(AuthUser, request):
+                return {'failed': '403'}
+        else:
+            return {'failed': '403'}
 
         try:
             cnx = mysql.connector.connect(user='root', password='misha_benich228',
@@ -123,35 +145,26 @@ class AddMeetMember(Resource):
                                           database='meets')
 
             cursor = cnx.cursor(buffered=True)
-            query = "select sig from members where idmembers = %s and sig = %s"
-            data = (_id_client, _signature,)
+
+
+            query = "select idmember from participation where idmember = %s and idmeeting = %s;"
+            data = (_id_client, _meet, )
             cursor.execute(query, data)
 
             for item in cursor:
                 for value in item:
-                    if str(value) == _signature:
+                    if str(value) == str(_id_client):
+                        return {'failed': 'User is in meeting yet'}
 
-                        query = "select idmember from participation where idmember = %s and idmeeting = %s;"
-                        data = (_id_client, _meet, )
-                        cursor.execute(query, data)
+            query = "insert into participation values (default, %s, %s);"
+            data = (_meet, _id_client, )
+            cursor.execute(query, data)
+            query = "update meetings set members_amount = members_amount + 1 where id = %s"
+            data = (_meet,)
+            cursor.execute(query, data)
+            cnx.commit()
 
-                        for item in cursor:
-                            for value in item:
-                                if str(value) == str(_id_client):
-                                    return {'failed': 'User is in meeting yet'}
-
-                        query = "insert into participation values (default, %s, %s);"
-                        data = (_meet, _id_client, )
-                        cursor.execute(query, data)
-                        query = "update meetings set members_amount = members_amount + 1 where id = %s"
-                        data = (_meet,)
-                        cursor.execute(query, data)
-                        cnx.commit()
-                        return {'success': True, 'failed': '403'}
-                    else:
-                        return {'success': False}
-
-                    return {'success': False}
+            return {'success': True}
 
         except BaseException as e:
             return {'success': False}
@@ -161,7 +174,6 @@ class RemoveMeetMember(Resource):
     def delete(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int)
-        parser.add_argument('signature', type=str)
         parser.add_argument('meet', type=int)
         args = parser.parse_args()
 
@@ -172,84 +184,77 @@ class RemoveMeetMember(Resource):
         cursor = cnx.cursor(buffered=True)
 
         _id_client = args['id']
-        _signature = args['signature']
         _meet = args['meet']
 
-        query = "select sig from members where idmembers = %s and sig = %s"
-        data = (_id_client, _signature,)
-        cursor.execute(query, data)
-
-        for item in cursor:
-            for value in item:
-                if str(value) == _signature:
-
-                    query = "select idmember from participation where idmember = %s and idmeeting = %s;"
-                    data = (_id_client, _meet, )
-                    cursor.execute(query, data)
-
-                    for item in cursor:
-                        for value in item:
-                            if str(value) != str(_id_client):
-                                return {'failed': 'user is not on meet'}
-
-                    query = "delete from participation where idmember = %s and idmeeting = %s;"
-                    data = (_meet, _id_client, )
-                    cursor.execute(query, data)
-                    cnx.commit()
-                    query = "update meetings set members_amount = members_amount -1 where id = %s and members_amount > 0"
-                    data = (_meet, )
-                    cursor.execute(query, data)
-                    cnx.commit()
-                    return {'success': True}
+        if 'xvk' in request.headers:
+            if not AuthUser.check_sign(AuthUser, request):
+                return {'failed': '403'}
         else:
-            return {'success': False, 'failed': '403'}
+            return {'failed': '403'}
 
-        return {'success': False}
+            query = "select idmember from participation where idmember = %s and idmeeting = %s;"
+            data = (_id_client, _meet, )
+            cursor.execute(query, data)
+
+            for item in cursor:
+                for value in item:
+                    if str(value) != str(_id_client):
+                        return {'failed': 'user is not on meet'}
+
+            query = "delete from participation where idmember = %s and idmeeting = %s;"
+            data = (_meet, _id_client, )
+            cursor.execute(query, data)
+            cnx.commit()
+            query = "update meetings set members_amount = members_amount -1 where id = %s and members_amount > 0"
+            data = (_meet, )
+            cursor.execute(query, data)
+            cnx.commit()
+            return {'success': True}
 
 
 class AuthUser(Resource):
-    def post(self):
-        #https://vk.com/dev/vk_apps_docs3?f=6.1+подписью+параметров+запуска
-        parser = reqparse.RequestParser()
-        parser.add_argument('id', type=int)
-        parser.add_argument('signature', type=str)
-        args = parser.parse_args()
+    def check_sign(self, request):
+        def is_valid(*, query: dict, secret: str) -> bool:
+            """Check VK Apps signature"""
+            vk_subset = OrderedDict(sorted(x for x in query.items() if x[0][:3] == "vk_"))
+            hash_code = b64encode(HMAC(secret.encode(), urlencode(vk_subset, doseq=True).encode(), sha256).digest())
+            decoded_hash_code = hash_code.decode('utf-8')[:-1].replace('+', '-').replace('/', '_')
+            return query["sign"] == decoded_hash_code
 
-        _id_client = args['id']
-        _signature = args['signature']
+        if 'xvk' in request.headers:
+            launch_params = request.headers.get('xvk')
+            launch_params = "https://vargasoff.com:8000?" + launch_params
+            launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
-        query = "update members set signature = %s where id = ;"
+            if not is_valid(query=launch_params, secret="VUc7I09bHOUYWjfFhx20"):
+                return False
+            else:
+                return True
+        else:
+            return False
 
-    def checkuser(self, id, sig):
+    def checkuser(self, id):
         cnx = mysql.connector.connect(user='root', password='misha_benich228',
                                       host='0.0.0.0',
                                       database='meets')
 
         cursor = cnx.cursor(buffered=True)
 
-        query = "select sig from members where idmembers = %s and sig = %s"
-        data = (id, sig)
+        query = "select rights_level from members where idmembers = %s;"
+        data = (id, )
         cursor.execute(query, data)
-
         for item in cursor:
             for value in item:
-                if str(value) == str(sig):
-                    query = "select rights_level from members where sig = %s;"
-                    data = (sig,)
-                    cursor.execute(query, data)
-                    for item in cursor:
-                        for value in item:
-                            if str(value) == "admin":
-                                return True
-                            else:
-                                return False
+                if str(value) == "admin":
+                    return True
+                else:
+                    return False
 
 
 class AddComment(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int)
-        parser.add_argument('signature', type=str)
         parser.add_argument('meet', type=int)
         parser.add_argument('comment', type=str)
         args = parser.parse_args()
@@ -261,27 +266,20 @@ class AddComment(Resource):
         cursor = cnx.cursor(buffered=True)
 
         _id_client = args['id']
-        _signature = args['signature']
         _meet = args['meet']
         _comment = args['comment']
 
-        query = "select sig from members where idmembers = %s and sig = %s"
-        data = (_id_client, _signature,)
+        if 'xvk' in request.headers:
+            if not AuthUser.check_sign(AuthUser, request):
+                return {'failed': '403'}
+        else:
+            return {'failed': '403'}
+
+        query = "insert into comments values (default, %s, %s, %s);"
+        data = (_comment, _id_client, _meet)
         cursor.execute(query, data)
-
-        for item in cursor:
-            for value in item:
-                if str(value) == _signature:
-
-                    query = "insert into comments values (default, %s, %s, %s);"
-                    data = (_comment, _id_client, _meet)
-                    cursor.execute(query, data)
-                    cnx.commit()
-                    return {'success': True}
-                else:
-                    return {'success': False, 'failed': '403'}
-
-        return {'success': False}
+        cnx.commit()
+        return {'success': True}
 
 
 class GetMeetComments(Resource):
@@ -297,6 +295,14 @@ class GetMeetComments(Resource):
         cursor = cnx.cursor(buffered=True)
 
         _meet = args['meet']
+
+        if 'xvk' in request.headers:
+            if not AuthUser.check_sign(AuthUser, request):
+                return {'failed': '403'}
+        else:
+            return {'failed': '403'}
+
+        #TODO Добавить проверку что пользователь является участником митинга
 
         query = "select * from comments where meetingid = %s"
         data = (_meet,)
@@ -328,7 +334,6 @@ class RemoveComment(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('comment', type=int)
         parser.add_argument('id', type=int)
-        parser.add_argument('sig', type=int)
 
         args = parser.parse_args()
 
@@ -340,9 +345,12 @@ class RemoveComment(Resource):
 
         _comment = args['comment']
         _id = args['id']
-        _sig = args['sig']
 
-        exec = True
+        if 'xvk' in request.headers:
+            if not AuthUser.check_sign(AuthUser, request):
+                return {'failed': '403'}
+        else:
+            return {'failed': '403'}
 
         query = "select count(idcomments)>0 from comments where idcomments = %s"
         data = (_comment,)
@@ -352,11 +360,10 @@ class RemoveComment(Resource):
                 if str(value) != "True":
                     return {'success': False, 'failed': 'Comment doesnt exists'}
 
-        if exec:
-            query = "delete from comments where idcomments = %s;"
-            cursor.execute(query, data)
-            cnx.commit()
-            return {'success': False}
+        query = "delete from comments where idcomments = %s;"
+        cursor.execute(query, data)
+        cnx.commit()
+        return {'success': False}
 
 
 class ApproveMeet(Resource):
@@ -364,7 +371,6 @@ class ApproveMeet(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
         parser.add_argument('id', type=int)
-        parser.add_argument('sig', type=int)
 
         args = parser.parse_args()
 
@@ -376,9 +382,8 @@ class ApproveMeet(Resource):
 
         _meet = args['meet']
         _id = args['id']
-        _sig = args['sig']
 
-        if AuthUser.checkuser(self, _id, _sig):
+        if AuthUser.checkuser(self, _id):
             query = "update meetings set ismoderated = 1 where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
@@ -393,7 +398,6 @@ class DeApproveMeet(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
         parser.add_argument('id', type=int)
-        parser.add_argument('sig', type=int)
         args = parser.parse_args()
 
         cnx = mysql.connector.connect(user='root', password='misha_benich228',
@@ -404,8 +408,7 @@ class DeApproveMeet(Resource):
 
         _meet = args['meet']
         _id = args['id']
-        _sig = args['sig']
-        if AuthUser.checkuser(self, _id, _sig):
+        if AuthUser.checkuser(self, _id):
             query = "update meetings set ismoderated = 0 where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
@@ -420,13 +423,12 @@ class GetAllMeets(Resource):
         try:
             parser = reqparse.RequestParser()
             parser.add_argument('id', type=int)
-            parser.add_argument('signature', type=int)
 
             args = parser.parse_args()
 
             _id = args['id']
             _sig = args['signature']
-            if AuthUser.checkuser(AuthUser, _id, _sig):
+            if AuthUser.checkuser(AuthUser, _id):
 
                 cnx = mysql.connector.connect(user='root', password='misha_benich228',
                                               host='0.0.0.0',
