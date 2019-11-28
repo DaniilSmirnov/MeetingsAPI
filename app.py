@@ -101,6 +101,30 @@ class GetMeets(Resource):
 
                 cnx.close()
 
+            def get_owner_name(id):
+                query = "select name from members where idmembers = %s;"
+                data = (id,)
+                cursor.execute(query, data)
+                for item in cursor:
+                    for value in item:
+                        return value
+
+            def get_owner_surname(id):
+                query = "select surname from members where idmembers = %s;"
+                data = (id,)
+                cursor.execute(query, data)
+                for item in cursor:
+                    for value in item:
+                        return value
+
+            def get_owner_photo(id):
+                query = "select surname from members where idmembers = %s;"
+                data = (id,)
+                cursor.execute(query, data)
+                for item in cursor:
+                    for value in item:
+                        return value
+
             parser = reqparse.RequestParser()
             parser.add_argument('id', type=int)
             args = parser.parse_args()
@@ -135,6 +159,9 @@ class GetMeets(Resource):
                         meet.update({'description': value})
                     if i == 3:
                         meet.update({'ownerid': value})
+                        meet.update({'owner_name': get_owner_name(value)})
+                        meet.update({'owner_surname':get_owner_surname(value)})
+                        meet.update({'owner_photo':get_owner_photo(value)})
                     if i == 4:
                         meet.update({'members_amount': value})
                     if i == 5:
