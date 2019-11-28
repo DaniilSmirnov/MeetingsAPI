@@ -71,9 +71,7 @@ class AddMeet(Resource):
             return {'failed': '403'}
 
         try:
-            cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                          host='0.0.0.0',
-                                          database='meets')
+            cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
 
@@ -97,9 +95,7 @@ class GetMeets(Resource):
         try:
 
             def ismember(meet, id):
-                cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                              host='0.0.0.0',
-                                              database='meets')
+                cnx = get_cnx()
 
                 cursor = cnx.cursor(buffered=True)
                 query = "select count(id) from meetings where id = %s and id in (select idmeeting from participation where idmember = %s);"
@@ -188,9 +184,7 @@ class GetUserMeets(Resource):
             else:
                 return {'failed': '403'}
 
-            cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                          host='0.0.0.0',
-                                          database='meets')
+            cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where finish > current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s);"
@@ -248,9 +242,7 @@ class AddMeetMember(Resource):
             return {'failed': '403'}
 
         try:
-            cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                          host='0.0.0.0',
-                                          database='meets')
+            cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
 
@@ -288,9 +280,7 @@ class RemoveMeetMember(Resource):
         parser.add_argument('meet', type=int)
         args = parser.parse_args()
         try:
-            cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                          host='0.0.0.0',
-                                          database='meets')
+            cnx = get_cnx()
 
             cursor = cnx.cursor()
 
@@ -400,9 +390,7 @@ class AddComment(Resource):
         parser.add_argument('comment', type=str)
         args = parser.parse_args()
 
-        cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                      host='0.0.0.0',
-                                      database='meets')
+        cnx = get_cnx()
 
         cursor = cnx.cursor(buffered=True)
 
@@ -432,9 +420,7 @@ class GetMeetComments(Resource):
         parser.add_argument('meet', type=str)
         args = parser.parse_args()
 
-        cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                      host='0.0.0.0',
-                                      database='meets')
+        cnx = get_cnx()
 
         cursor = cnx.cursor(buffered=True)
 
@@ -483,9 +469,7 @@ class RemoveComment(Resource):
 
         args = parser.parse_args()
 
-        cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                      host='0.0.0.0',
-                                      database='meets')
+        cnx = get_cnx()
 
         cursor = cnx.cursor(buffered=True)
 
@@ -525,9 +509,7 @@ class ApproveMeet(Resource):
 
         args = parser.parse_args()
 
-        cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                      host='0.0.0.0',
-                                      database='meets')
+        cnx = get_cnx()
 
         cursor = cnx.cursor(buffered=True)
 
@@ -568,9 +550,7 @@ class DeApproveMeet(Resource):
         parser.add_argument('id', type=int)
         args = parser.parse_args()
 
-        cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                      host='0.0.0.0',
-                                      database='meets')
+        cnx = get_cnx()
 
         cursor = cnx.cursor(buffered=True)
 
@@ -621,9 +601,7 @@ class GetAllMeets(Resource):
             _id = args['id']
             if AuthUser.checkuser(AuthUser, _id, request):
 
-                cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                              host='0.0.0.0',
-                                              database='meets')
+                cnx = get_cnx()
 
                 cursor = cnx.cursor(buffered=True)
                 query = "select * from meetings;"
@@ -722,9 +700,7 @@ class UpdateUser(Resource):
         _surname = args['last_name']
         _photo = args['photo']
 
-        cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                      host='0.0.0.0',
-                                      database='meets')
+        cnx = get_cnx()
 
         cursor = cnx.cursor(buffered=True)
         query = "update members set name = %s, surname = %s, photo = %s where idmembers = %s;"
@@ -760,9 +736,7 @@ class AddUser(Resource):
             _surname = args['last_name']
             _photo = args['photo']
 
-            cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                          host='0.0.0.0',
-                                          database='meets')
+            cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
             query = "insert into members values(%s, default, %s, %s, %s)"
@@ -793,9 +767,7 @@ class IsFirst(Resource):
 
             _id = args['id']
 
-            cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                              host='0.0.0.0',
-                                              database='meets')
+            cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
 
