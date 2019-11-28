@@ -1,14 +1,13 @@
-from flask import Flask
-from flask_restful import Resource, Api, reqparse
-from flask import request
-import mysql.connector
-from flask_cors import CORS
-import hashlib
 from base64 import b64encode
 from collections import OrderedDict
 from hashlib import sha256
 from hmac import HMAC
 from urllib.parse import urlparse, parse_qsl, urlencode
+import mysql.connector
+from flask import Flask
+from flask import request
+from flask_cors import CORS
+from flask_restful import Resource, Api, reqparse
 
 app = Flask(__name__)
 
@@ -247,7 +246,7 @@ class AddMeetMember(Resource):
             cursor = cnx.cursor(buffered=True)
 
             query = "select count(idmember) from participation where idmember = %s and idmeeting = %s;"
-            data = (_id_client, _meet, )
+            data = (_id_client, _meet,)
             cursor.execute(query, data)
 
             for item in cursor:
@@ -256,7 +255,7 @@ class AddMeetMember(Resource):
                         return {'failed': 'User is in meeting yet'}
 
             query = "insert into participation values (default, %s, %s);"
-            data = (_meet, _id_client, )
+            data = (_meet, _id_client,)
             cursor.execute(query, data)
             query = "update meetings set members_amount = members_amount + 1 where id = %s"
             data = (_meet,)
@@ -294,7 +293,7 @@ class RemoveMeetMember(Resource):
                 return {'failed': '403'}
 
             query = "select count(idmember) from participation where idmember = %s and idmeeting = %s;"
-            data = (_id_client, _meet, )
+            data = (_id_client, _meet,)
             cursor.execute(query, data)
 
             for item in cursor:
@@ -304,11 +303,11 @@ class RemoveMeetMember(Resource):
                         return {'failed': 'user is not in meet'}
 
             query = "delete from participation where idmember = %s and idmeeting = %s;"
-            data = (_id_client, _meet, )
+            data = (_id_client, _meet,)
             cursor.execute(query, data)
             cnx.commit()
             query = "update meetings set members_amount = members_amount -1 where id = %s and members_amount > 0"
-            data = (_meet, )
+            data = (_meet,)
             cursor.execute(query, data)
             cnx.commit()
 
@@ -368,7 +367,7 @@ class AuthUser(Resource):
         cursor = cnx.cursor(buffered=True)
 
         query = "select rights_level from members where idmembers = %s;"
-        data = (id, )
+        data = (id,)
         cursor.execute(query, data)
         for item in cursor:
             for value in item:
@@ -432,7 +431,7 @@ class GetMeetComments(Resource):
         else:
             return {'failed': '403'}
 
-        #TODO Добавить проверку что пользователь является участником митинга
+        # TODO Добавить проверку что пользователь является участником митинга
 
         query = "select * from comments where meetingid = %s"
         data = (_meet,)
@@ -482,7 +481,7 @@ class RemoveComment(Resource):
         else:
             return {'failed': '403'}
 
-        #TODO: Добавить проверку на то, что юзер удаляет свой коммент или это админ\владелец митинга
+        # TODO: Добавить проверку на то, что юзер удаляет свой коммент или это админ\владелец митинга
 
         query = "select count(idcomments)>0 from comments where idcomments = %s"
         data = (_comment,)
@@ -523,7 +522,7 @@ class ApproveMeet(Resource):
         _id = args['id']
         if AuthUser.checkuser(AuthUser, _id, request):
             query = "select ismoderated from meetings where id = %s;"
-            data = (_meet, )
+            data = (_meet,)
             cursor.execute(query, data)
             for item in cursor:
                 for value in item:
@@ -772,7 +771,7 @@ class IsFirst(Resource):
             cursor = cnx.cursor(buffered=True)
 
             query = "select count(idmembers) from members where idmembers = %s;"
-            data = (_id, )
+            data = (_id,)
             cursor.execute(query, data)
 
             for item in cursor:
