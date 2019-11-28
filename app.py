@@ -18,6 +18,14 @@ cors = CORS(app)
 api = Api(app)
 
 
+def GetConnection():
+    cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                  host='0.0.0.0',
+                                  database='meets')
+
+    return cnx
+
+
 class TestConnection(Resource):
     def get(self):
         return {'status': 'success'}
@@ -159,9 +167,9 @@ class GetMeets(Resource):
                         meet.update({'description': value})
                     if i == 3:
                         meet.update({'ownerid': value})
-                        meet.update({'owner_name': get_owner_name(value)})
-                        meet.update({'owner_surname':get_owner_surname(value)})
-                        meet.update({'owner_photo':get_owner_photo(value)})
+                        meet.update({'owner_name': GetUser(GetUser, get_owner_name(value))})
+                        meet.update({'owner_surname': GetUser(GetUser, get_owner_surname(value))})
+                        meet.update({'owner_photo': GetUser(GetUser, get_owner_photo(value))})
                     if i == 4:
                         meet.update({'members_amount': value})
                     if i == 5:
@@ -669,6 +677,48 @@ class GetAllMeets(Resource):
                 return {'success': False}
         except BaseException as e:
             return str(e)
+
+
+class GetUser(Resource):
+
+    def get_connect(self):
+        cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                      host='0.0.0.0',
+                                      database='meets')
+        return cnx
+
+    def get_owner_name(self, id):
+        cnx = self.get_connect()
+        cursor = cnx.cursor()
+        query = "select name from members where idmembers = %s;"
+        data = (id,)
+        cursor.execute(query, data)
+        for item in cursor:
+            for value in item:
+                cnx.close()
+                return value
+
+    def get_owner_surname(self, id):
+        cnx = self.get_connect()
+        cursor = cnx.cursor()
+        query = "select surname from members where idmembers = %s;"
+        data = (id,)
+        cursor.execute(query, data)
+        for item in cursor:
+            for value in item:
+                cnx.close()
+                return value
+
+    def get_owner_photo(self, id):
+        cnx = self.get_connect()
+        cursor = cnx.cursor()
+        query = "select surname from members where idmembers = %s;"
+        data = (id,)
+        cursor.execute(query, data)
+        for item in cursor:
+            for value in item:
+                cnx.close()
+                return value
 
 
 class UpdateUser(Resource):
