@@ -51,9 +51,15 @@ class AddMeet(Resource):
         _photo = args['photo']
 
         if (len(_name) == 0) or _name.isspace() or _name.isdigit():
-            return {'failed': 'Не корректное название митинга'}
+            return {'failed': 'Некорректное название митинга'}
         if len(_description) == 0 or _description.isspace() or _description.isdigit():
-            return {'failed': 'Не корректное описание митинга'}
+            return {'failed': 'Некорректное описание митинга'}
+        if len(_start) == 0 or _start.isspace():
+            return {'failed': 'Некорректная дата начала митинга'}
+        if len(_finish) == 0 or _finish.isspace():
+            return {'failed': 'Некорректная дата окончания митинга'}
+        if len(_photo) == 0 or _photo.isspace() or _photo.isdigit():
+            return {'failed': 'Некорректное фото митинга или ссылка на него'}
 
         if 'xvk' in request.headers:
             if not AuthUser.check_sign(AuthUser, request):
@@ -83,7 +89,7 @@ class AddMeet(Resource):
         except BaseException as e:
             cursor.close()
             cnx.close()
-            return {'error': str(e)}
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
 
 
 class GetMeets(Resource):
@@ -164,7 +170,7 @@ class GetMeets(Resource):
         except BaseException as e:
             cursor.close()
             cnx.close()
-            return str(e)
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
 
 
 class GetUserMeets(Resource):
@@ -222,7 +228,7 @@ class GetUserMeets(Resource):
         except BaseException as e:
             cursor.close()
             cnx.close()
-            return str(e)
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
 
 
 class AddMeetMember(Resource):
@@ -272,7 +278,7 @@ class AddMeetMember(Resource):
         except BaseException as e:
             cursor.close()
             cnx.close()
-            return {'success': False}
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
 
 
 class RemoveMeetMember(Resource):
@@ -320,7 +326,7 @@ class RemoveMeetMember(Resource):
             cnx.close()
             return {'success': True}
         except BaseException:
-            return {'success': False}
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
 
 
 class AuthUser(Resource):
