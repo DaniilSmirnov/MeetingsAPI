@@ -94,7 +94,7 @@ class GetMeets(Resource):
 
                 for item in cursor:
                     for value in item:
-                        if value == 1:
+                        if value > 0:
                             return 1
                         else:
                             return 0
@@ -143,7 +143,6 @@ class GetMeets(Resource):
                         meet.update({'finish': str(value)})
                     if i == 8:
                         meet.update({'photo': str(value)})
-                    if i == 9:
                         meet.update({'ismember': ismember(id, _id_client)})
                     i += 1
                 response.append(meet)
@@ -316,7 +315,10 @@ class AuthUser(Resource):
             vk_subset = OrderedDict(sorted(x for x in query.items() if x[0][:3] == "vk_"))
             hash_code = b64encode(HMAC(secret.encode(), urlencode(vk_subset, doseq=True).encode(), sha256).digest())
             decoded_hash_code = hash_code.decode('utf-8')[:-1].replace('+', '-').replace('/', '_')
-            return query["sign"] == decoded_hash_code
+            try:
+                return query["sign"] == decoded_hash_code
+            except KeyError:
+                return query.get("sign") == decoded_hash_code
 
         if 'xvk' in request.headers:
             launch_params = request.headers.get('xvk')
@@ -453,7 +455,7 @@ class GetMeetComments(Resource):
 
 
 class RemoveComment(Resource):
-    def delete(self):
+    def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('comment', type=int)
         parser.add_argument('id', type=int)
@@ -474,6 +476,8 @@ class RemoveComment(Resource):
                 return {'failed': '403'}
         else:
             return {'failed': '403'}
+
+        #TODO: Добавить проверку на то, что юзер удаляет свой коммент или это админ\владелец митинга
 
         query = "select count(idcomments)>0 from comments where idcomments = %s"
         data = (_comment,)
@@ -640,8 +644,51 @@ class GetAllMeets(Resource):
             return str(e)
 
 
+class UpdateUser(Resource):
+    def post(self):
+        pass
+
+
+class IsFirst(Resource):
+    def get(self):
+        try:
+            parser = reqparse.RequestParser()
+            parser.add_argument('id', type=int)
+
+            args = parser.parse_args()
+
+            if 'xvk' in request.headers:
+                if not AuthUser.check_sign(AuthUser, request):
+                    return {'failed': '403'}
+            else:
+                return {'failed': '403'}
+
+            _id = args['id']
+
+            cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                              host='0.0.0.0',
+                                              database='meets')
+
+            cursor = cnx.cursor(buffered=True)
+
+            query = "select count(idmembers) from members where idmembers = %s;"
+            data = (_id, )
+            cursor.execute(query, data)
+
+            for item in cursor:
+                for value in item:
+                    if value == 1:
+                        return True
+                    if value == 0:
+                        return False
+
+        except BaseException:
+            return {'failed': 'error'}
+
+
 api.add_resource(TestConnection, '/TestConnection')
 
+api.add_resource(IsFirst, '/IsFirst')
 api.add_resource(GetMeets, '/GetMeets')
 api.add_resource(AddMeet, '/AddMeet')
 
