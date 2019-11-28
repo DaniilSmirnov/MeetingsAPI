@@ -721,7 +721,7 @@ class UpdateUser(Resource):
                                       database='meets')
 
         cursor = cnx.cursor(buffered=True)
-        query = "update members set name = %s surname = %s photo %s where memberid = %s;"
+        query = "update members set name = %s, surname = %s, photo = %s where idmembers = %s;"
         data = (_name, _surname, _photo, _id)
         cursor.execute(query, data)
         cnx.commit()
@@ -733,38 +733,42 @@ class UpdateUser(Resource):
 
 class AddUser(Resource):
     def post(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument('id', type=int)
-        parser.add_argument('first_name', type=str)
-        parser.add_argument('last_name', type=str)
-        parser.add_argument('photo', type=str)
+        try:
 
-        args = parser.parse_args()
+            parser = reqparse.RequestParser()
+            parser.add_argument('id', type=int)
+            parser.add_argument('first_name', type=str)
+            parser.add_argument('last_name', type=str)
+            parser.add_argument('photo', type=str)
 
-        if 'xvk' in request.headers:
-            if not AuthUser.check_sign(AuthUser, request):
+            args = parser.parse_args()
+
+            if 'xvk' in request.headers:
+                if not AuthUser.check_sign(AuthUser, request):
+                    return {'failed': '403'}
+            else:
                 return {'failed': '403'}
-        else:
-            return {'failed': '403'}
 
-        _id = args['id']
-        _name = args['first_name']
-        _surname = args['last_name']
-        _photo = args['photo']
+            _id = args['id']
+            _name = args['first_name']
+            _surname = args['last_name']
+            _photo = args['photo']
 
-        cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                      host='0.0.0.0',
-                                      database='meets')
+            cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                          host='0.0.0.0',
+                                          database='meets')
 
-        cursor = cnx.cursor(buffered=True)
-        query = "insert into members values(%s, default, %s, %s, %s)"
-        data = (_id, _name, _surname, _photo)
-        cursor.execute(query, data)
-        cnx.commit()
+            cursor = cnx.cursor(buffered=True)
+            query = "insert into members values(%s, default, %s, %s, %s)"
+            data = (_id, _name, _surname, _photo)
+            cursor.execute(query, data)
+            cnx.commit()
 
-        cnx.close()
+            cnx.close()
 
-        return {'status': 'Успешно'}
+            return {'status': 'Успешно'}
+        except BaseException:
+            return {'status': 'failed'}
 
 
 class IsFirst(Resource):
@@ -796,9 +800,9 @@ class IsFirst(Resource):
             for item in cursor:
                 for value in item:
                     if value == 1:
-                        return True
-                    if value == 0:
                         return False
+                    if value == 0:
+                        return True
 
             cnx.close()
 
