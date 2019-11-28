@@ -18,7 +18,7 @@ cors = CORS(app)
 api = Api(app)
 
 
-def GetConnection():
+def get_cnx():
     cnx = mysql.connector.connect(user='root', password='misha_benich228',
                                   host='0.0.0.0',
                                   database='meets')
@@ -51,9 +51,9 @@ class AddMeet(Resource):
         _photo = args['photo']
 
         if (len(_name) == 0) or _name.isspace() or _name.isdigit():
-            return {'failed': 'invalid name'}
+            return {'failed': 'Не корректное название митинга'}
         if len(_description) == 0 or _description.isspace() or _description.isdigit():
-            return {'failed': 'invalid name'}
+            return {'failed': 'Не корректное описание митинга'}
 
         if 'xvk' in request.headers:
             if not AuthUser.check_sign(AuthUser, request):
@@ -109,35 +109,14 @@ class GetMeets(Resource):
 
                 cnx.close()
 
-            def get_owner_name(id):
-                query = "select name from members where idmembers = %s;"
-                data = (id,)
-                cursor.execute(query, data)
-                for item in cursor:
-                    for value in item:
-                        return value
-
-            def get_owner_surname(id):
-                query = "select surname from members where idmembers = %s;"
-                data = (id,)
-                cursor.execute(query, data)
-                for item in cursor:
-                    for value in item:
-                        return value
-
-            def get_owner_photo(id):
-                query = "select surname from members where idmembers = %s;"
-                data = (id,)
-                cursor.execute(query, data)
-                for item in cursor:
-                    for value in item:
-                        return value
-
             parser = reqparse.RequestParser()
             parser.add_argument('id', type=int)
             args = parser.parse_args()
 
             _id_client = args['id']
+            if not isinstance(_id_client, int):
+                return {'status': 'failed',
+                        'error': 'invalid argument type'}
 
             if 'xvk' in request.headers:
                 if not AuthUser.check_sign(AuthUser, request):
@@ -145,9 +124,7 @@ class GetMeets(Resource):
             else:
                 return {'failed': '403'}
 
-            cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                          host='0.0.0.0',
-                                          database='meets')
+            cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where finish > current_date() and ismoderated = 1;"
@@ -167,9 +144,9 @@ class GetMeets(Resource):
                         meet.update({'description': value})
                     if i == 3:
                         meet.update({'ownerid': value})
-                        meet.update({'owner_name': GetUser(GetUser, get_owner_name(value))})
-                        meet.update({'owner_surname': GetUser(GetUser, get_owner_surname(value))})
-                        meet.update({'owner_photo': GetUser(GetUser, get_owner_photo(value))})
+                        meet.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
+                        meet.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
+                        meet.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
                     if i == 4:
                         meet.update({'members_amount': value})
                     if i == 5:
@@ -226,6 +203,9 @@ class GetUserMeets(Resource):
                         meet.update({'description': value})
                     if i == 3:
                         meet.update({'ownerid': value})
+                        meet.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
+                        meet.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
+                        meet.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
                     if i == 4:
                         meet.update({'members_amount': value})
                     if i == 5:
@@ -681,14 +661,8 @@ class GetAllMeets(Resource):
 
 class GetUser(Resource):
 
-    def get_connect(self):
-        cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                      host='0.0.0.0',
-                                      database='meets')
-        return cnx
-
     def get_owner_name(self, id):
-        cnx = self.get_connect()
+        cnx = get_cnx()
         cursor = cnx.cursor()
         query = "select name from members where idmembers = %s;"
         data = (id,)
@@ -699,7 +673,7 @@ class GetUser(Resource):
                 return value
 
     def get_owner_surname(self, id):
-        cnx = self.get_connect()
+        cnx = get_cnx()
         cursor = cnx.cursor()
         query = "select surname from members where idmembers = %s;"
         data = (id,)
@@ -710,7 +684,7 @@ class GetUser(Resource):
                 return value
 
     def get_owner_photo(self, id):
-        cnx = self.get_connect()
+        cnx = get_cnx()
         cursor = cnx.cursor()
         query = "select surname from members where idmembers = %s;"
         data = (id,)
@@ -725,8 +699,8 @@ class UpdateUser(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int)
-        parser.add_argument('name', type=str)
-        parser.add_argument('surname', type=str)
+        parser.add_argument('first_name', type=str)
+        parser.add_argument('last_name', type=str)
         parser.add_argument('photo', type=str)
 
         args = parser.parse_args()
@@ -738,8 +712,8 @@ class UpdateUser(Resource):
             return {'failed': '403'}
 
         _id = args['id']
-        _name = args['name']
-        _surname = args['surname']
+        _name = args['first_name']
+        _surname = args['last_name']
         _photo = args['photo']
 
         cnx = mysql.connector.connect(user='root', password='misha_benich228',
@@ -761,8 +735,8 @@ class AddUser(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int)
-        parser.add_argument('name', type=str)
-        parser.add_argument('surname', type=str)
+        parser.add_argument('first_name', type=str)
+        parser.add_argument('last_name', type=str)
         parser.add_argument('photo', type=str)
 
         args = parser.parse_args()
@@ -774,8 +748,8 @@ class AddUser(Resource):
             return {'failed': '403'}
 
         _id = args['id']
-        _name = args['name']
-        _surname = args['surname']
+        _name = args['first_name']
+        _surname = args['last_name']
         _photo = args['photo']
 
         cnx = mysql.connector.connect(user='root', password='misha_benich228',
@@ -828,7 +802,8 @@ class IsFirst(Resource):
 
             cnx.close()
 
-        except BaseException:
+        except BaseException as e:
+            return str(e)
             return {'failed': 'error'}
 
 
@@ -852,7 +827,6 @@ api.add_resource(RemoveComment, '/RemoveComment')
 api.add_resource(ApproveMeet, '/admin/Approve')
 api.add_resource(DeApproveMeet, '/admin/DeApprove')
 api.add_resource(GetAllMeets, '/admin/GetAllMeets')
-#11
 
 if __name__ == '__main__':
     context = ('/etc/ssl/vargasoff.ru.crt', '/etc/ssl/private.key')
