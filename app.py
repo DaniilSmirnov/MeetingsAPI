@@ -253,6 +253,7 @@ class AddMeetMember(Resource):
 
 
 class RemoveMeetMember(Resource):
+    decorators = [limiter.limit("5 per second")]
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
@@ -311,7 +312,7 @@ class AuthUser(Resource):
             launch_params = "https://vargasoff.com:8000?" + launch_params
             launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
-            if not is_valid(query=launch_params, secret="VUc7I09bHOUYWjfFhx20"):
+            if not is_valid(query=launch_params, secret="ТЫ_ПИДОР"):
                 return -100
             else:
                 return launch_params.get('vk_user_id')
@@ -358,6 +359,7 @@ class AuthUser(Resource):
 
 
 class AddComment(Resource):
+    decorators = [limiter.limit("5 per second")]
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
@@ -386,6 +388,7 @@ class AddComment(Resource):
 
 
 class GetMeetComments(Resource):
+    decorators = [limiter.limit("5 per second")]
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=str)
@@ -431,6 +434,7 @@ class GetMeetComments(Resource):
 
 
 class RemoveComment(Resource):
+    decorators = [limiter.limit("5 per second")]
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('comment', type=int)
@@ -628,6 +632,7 @@ class GetUser(Resource):
 
 
 class UpdateUser(Resource):
+    decorators = [limiter.limit("5 per second")]
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('first_name', type=str)
@@ -658,9 +663,9 @@ class UpdateUser(Resource):
 
 
 class AddUser(Resource):
+    decorators = [limiter.limit("5 per second")]
     def post(self):
         try:
-
             parser = reqparse.RequestParser()
             parser.add_argument('first_name', type=str)
             parser.add_argument('last_name', type=str)
@@ -692,9 +697,9 @@ class AddUser(Resource):
 
 
 class IsFirst(Resource):
+    decorators = [limiter.limit("5 per second")]
     def get(self):
         try:
-
             _id = AuthUser.check_sign(AuthUser, request)
             if _id == -100:
                 return {'failed': 403}
