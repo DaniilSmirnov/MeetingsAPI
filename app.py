@@ -8,6 +8,8 @@ from flask import Flask
 from flask import request
 from flask_cors import CORS
 from flask_restful import Resource, Api, reqparse
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
 
@@ -15,6 +17,11 @@ app.config['CORS_HEADERS'] = 'Access-Control-Allow-Origin: *'
 
 cors = CORS(app)
 api = Api(app)
+limiter = Limiter(
+    app,
+    key_func=get_remote_address,
+    default_limits=["10 per second"],
+)
 
 
 def get_cnx():
@@ -31,12 +38,11 @@ class TestConnection(Resource):
 
 
 class AddMeet(Resource):
+    decorators = [limiter.limit("3 per day")]
     def post(self):
-
         parser = reqparse.RequestParser()
         parser.add_argument('name', type=str)
         parser.add_argument('description', type=str)
-        parser.add_argument('owner_id', type=int)
         parser.add_argument('start', type=str)
         parser.add_argument('finish', type=str)
         parser.add_argument('photo', type=str)
@@ -44,7 +50,6 @@ class AddMeet(Resource):
 
         _name = args['name']
         _description = args['description']
-        _owner_id = args['owner_id']
         _start = args['start']
         _finish = args['finish']
         _photo = args['photo']
@@ -60,14 +65,9 @@ class AddMeet(Resource):
         if len(_photo) == 0 or _photo.isspace() or _photo.isdigit():
             return {'failed': 'Некорректное фото митинга или ссылка на него'}
 
-        if 'xvk' in request.headers:
-            if not AuthUser.check_sign(AuthUser, request):
-                return {'failed': '403'}
-        else:
-            return {'failed': '403'}
-
-        if not AuthUser.validate_user(self, _owner_id, request):
-            return {'failed': '403'}
+        _owner_id = AuthUser.check_sign(AuthUser, request)
+        if _owner_id == -100:
+            return {'failed': 403}
 
         try:
             cnx = get_cnx()
@@ -90,6 +90,7 @@ class AddMeet(Resource):
 
 
 class GetMeets(Resource):
+    decorators = [limiter.limit("5 per second")]
     def get(self):
         try:
 
@@ -110,20 +111,9 @@ class GetMeets(Resource):
 
                 cnx.close()
 
-            parser = reqparse.RequestParser()
-            parser.add_argument('id', type=int)
-            args = parser.parse_args()
-
-            _id_client = args['id']
-            if not isinstance(_id_client, int):
-                return {'status': 'failed',
-                        'error': 'invalid argument type'}
-
-            if 'xvk' in request.headers:
-                if not AuthUser.check_sign(AuthUser, request):
-                    return {'failed': '403'}
-            else:
-                return {'failed': '403'}
+            _id_client = AuthUser.check_sign(AuthUser, request)
+            if _id_client == -100:
+                return {'failed': 403}
 
             cnx = get_cnx()
 
@@ -169,19 +159,12 @@ class GetMeets(Resource):
 
 
 class GetUserMeets(Resource):
+    decorators = [limiter.limit("5 per second")]
     def get(self):
         try:
-            parser = reqparse.RequestParser()
-            parser.add_argument('id', type=int)
-            args = parser.parse_args()
-
-            _id_client = args['id']
-
-            if 'xvk' in request.headers:
-                if not AuthUser.check_sign(AuthUser, request):
-                    return {'failed': '403'}
-            else:
-                return {'failed': '403'}
+            _id_client = AuthUser.check_sign(AuthUser, request)
+            if _id_client == -100:
+                return {'failed': 403}
 
             cnx = get_cnx()
 
@@ -225,20 +208,17 @@ class GetUserMeets(Resource):
 
 
 class AddMeetMember(Resource):
+    decorators = [limiter.limit("5 per second")]
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument('id', type=int)
         parser.add_argument('meet', type=int)
         args = parser.parse_args()
 
-        _id_client = args['id']
         _meet = args['meet']
 
-        if 'xvk' in request.headers:
-            if not AuthUser.check_sign(AuthUser, request):
-                return {'failed': '403'}
-        else:
-            return {'failed': '403'}
+        _id_client = AuthUser.check_sign(AuthUser, request)
+        if _id_client == -100:
+            return {'failed': 403}
 
         try:
             cnx = get_cnx()
@@ -275,7 +255,6 @@ class AddMeetMember(Resource):
 class RemoveMeetMember(Resource):
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument('id', type=int)
         parser.add_argument('meet', type=int)
         args = parser.parse_args()
         try:
@@ -283,14 +262,11 @@ class RemoveMeetMember(Resource):
 
             cursor = cnx.cursor()
 
-            _id_client = args['id']
             _meet = args['meet']
 
-            if 'xvk' in request.headers:
-                if not AuthUser.check_sign(AuthUser, request):
-                    return {'failed': '403'}
-            else:
-                return {'failed': '403'}
+            _id_client = AuthUser.check_sign(AuthUser, request)
+            if _id_client == -100:
+                return {'failed': 403}
 
             query = "select count(idmember) from participation where idmember = %s and idmeeting = %s;"
             data = (_id_client, _meet,)
@@ -336,11 +312,11 @@ class AuthUser(Resource):
             launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
             if not is_valid(query=launch_params, secret="VUc7I09bHOUYWjfFhx20"):
-                return False
+                return -100
             else:
-                return True
+                return launch_params.get('vk_user_id')
         else:
-            return False
+            return -100
 
     def validate_user(self, id, request):
         launch_params = request.headers.get('xvk')
@@ -384,7 +360,6 @@ class AuthUser(Resource):
 class AddComment(Resource):
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument('id', type=int)
         parser.add_argument('meet', type=int)
         parser.add_argument('comment', type=str)
         args = parser.parse_args()
@@ -393,15 +368,12 @@ class AddComment(Resource):
 
         cursor = cnx.cursor(buffered=True)
 
-        _id_client = args['id']
         _meet = args['meet']
         _comment = args['comment']
 
-        if 'xvk' in request.headers:
-            if not AuthUser.check_sign(AuthUser, request):
-                return {'failed': '403'}
-        else:
-            return {'failed': '403'}
+        _id_client = AuthUser.check_sign(AuthUser, request)
+        if _id_client == -100:
+            return {'failed': 403}
 
         query = "insert into comments values (default, %s, %s, %s);"
         data = (_comment, _id_client, _meet)
@@ -425,11 +397,9 @@ class GetMeetComments(Resource):
 
         _meet = args['meet']
 
-        if 'xvk' in request.headers:
-            if not AuthUser.check_sign(AuthUser, request):
-                return {'failed': '403'}
-        else:
-            return {'failed': '403'}
+        _id_client = AuthUser.check_sign(AuthUser, request)
+        if _id_client == -100:
+            return {'failed': 403}
 
         # TODO Добавить проверку что пользователь является участником митинга
 
@@ -464,7 +434,6 @@ class RemoveComment(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('comment', type=int)
-        parser.add_argument('id', type=int)
 
         args = parser.parse_args()
 
@@ -473,13 +442,10 @@ class RemoveComment(Resource):
         cursor = cnx.cursor(buffered=True)
 
         _comment = args['comment']
-        _id = args['id']
 
-        if 'xvk' in request.headers:
-            if not AuthUser.check_sign(AuthUser, request):
-                return {'failed': '403'}
-        else:
-            return {'failed': '403'}
+        _id = AuthUser.check_sign(AuthUser, request)
+        if _id == -100:
+            return {'failed': 403}
 
         # TODO: Добавить проверку на то, что юзер удаляет свой коммент или это админ\владелец митинга
 
@@ -504,22 +470,16 @@ class ApproveMeet(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
-        parser.add_argument('id', type=int)
-
         args = parser.parse_args()
-
         cnx = get_cnx()
 
         cursor = cnx.cursor(buffered=True)
 
-        _meet = args['meet']
-        if 'xvk' in request.headers:
-            if not AuthUser.check_sign(AuthUser, request):
-                return {'failed': '403'}
-        else:
-            return {'failed': '403'}
+        _id = AuthUser.check_sign(AuthUser, request)
+        if _id == -100:
+            return {'failed': 403}
 
-        _id = args['id']
+        _meet = args['meet']
         if AuthUser.checkuser(AuthUser, _id, request):
             query = "select ismoderated from meetings where id = %s;"
             data = (_meet,)
@@ -546,7 +506,6 @@ class DeApproveMeet(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
-        parser.add_argument('id', type=int)
         args = parser.parse_args()
 
         cnx = get_cnx()
@@ -554,13 +513,10 @@ class DeApproveMeet(Resource):
         cursor = cnx.cursor(buffered=True)
 
         _meet = args['meet']
-        if 'xvk' in request.headers:
-            if not AuthUser.check_sign(AuthUser, request):
-                return {'failed': '403'}
-        else:
-            return {'failed': '403'}
+        _id = AuthUser.check_sign(AuthUser, request)
+        if _id == -100:
+            return {'failed': 403}
 
-        _id = args['id']
         if AuthUser.checkuser(AuthUser, _id, request):
             query = "select ismoderated from meetings where id = %s;"
             data = (_meet,)
@@ -586,18 +542,11 @@ class DeApproveMeet(Resource):
 class GetAllMeets(Resource):
     def get(self):
         try:
-            parser = reqparse.RequestParser()
-            parser.add_argument('id', type=int)
 
-            args = parser.parse_args()
+            _id = AuthUser.check_sign(AuthUser, request)
+            if _id == -100:
+                return {'failed': 403}
 
-            if 'xvk' in request.headers:
-                if not AuthUser.check_sign(AuthUser, request):
-                    return {'failed': '403'}
-            else:
-                return {'failed': '403'}
-
-            _id = args['id']
             if AuthUser.checkuser(AuthUser, _id, request):
 
                 cnx = get_cnx()
@@ -681,29 +630,25 @@ class GetUser(Resource):
 class UpdateUser(Resource):
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument('id', type=int)
         parser.add_argument('first_name', type=str)
         parser.add_argument('last_name', type=str)
-        parser.add_argument('photo', type=str)
+        parser.add_argument('photo_200', type=str)
 
         args = parser.parse_args()
 
-        if 'xvk' in request.headers:
-            if not AuthUser.check_sign(AuthUser, request):
-                return {'failed': '403'}
-        else:
-            return {'failed': '403'}
+        _id_client = AuthUser.check_sign(AuthUser, request)
+        if _id_client == -100:
+            return {'failed': 403}
 
-        _id = args['id']
         _name = args['first_name']
         _surname = args['last_name']
-        _photo = args['photo']
+        _photo = args['photo_200']
 
         cnx = get_cnx()
 
         cursor = cnx.cursor(buffered=True)
         query = "update members set name = %s, surname = %s, photo = %s where idmembers = %s;"
-        data = (_name, _surname, _photo, _id)
+        data = (_name, _surname, _photo, _id_client)
         cursor.execute(query, data)
         cnx.commit()
 
@@ -717,29 +662,25 @@ class AddUser(Resource):
         try:
 
             parser = reqparse.RequestParser()
-            parser.add_argument('id', type=int)
             parser.add_argument('first_name', type=str)
             parser.add_argument('last_name', type=str)
-            parser.add_argument('photo', type=str)
+            parser.add_argument('photo_200', type=str)
 
             args = parser.parse_args()
 
-            if 'xvk' in request.headers:
-                if not AuthUser.check_sign(AuthUser, request):
-                    return {'failed': '403'}
-            else:
-                return {'failed': '403'}
+            _id_client = AuthUser.check_sign(AuthUser, request)
+            if _id_client == -100:
+                return {'failed': 403}
 
-            _id = args['id']
             _name = args['first_name']
             _surname = args['last_name']
-            _photo = args['photo']
+            _photo = args['photo_200']
 
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
             query = "insert into members values(%s, default, %s, %s, %s)"
-            data = (_id, _name, _surname, _photo)
+            data = (_id_client, _name, _surname, _photo)
             cursor.execute(query, data)
             cnx.commit()
 
@@ -753,18 +694,10 @@ class AddUser(Resource):
 class IsFirst(Resource):
     def get(self):
         try:
-            parser = reqparse.RequestParser()
-            parser.add_argument('id', type=int)
 
-            args = parser.parse_args()
-
-            if 'xvk' in request.headers:
-                if not AuthUser.check_sign(AuthUser, request):
-                    return {'failed': '403'}
-            else:
-                return {'failed': '403'}
-
-            _id = args['id']
+            _id = AuthUser.check_sign(AuthUser, request)
+            if _id == -100:
+                return {'failed': 403}
 
             cnx = get_cnx()
 
