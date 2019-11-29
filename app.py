@@ -34,6 +34,8 @@ def get_cnx():
 
 class TestConnection(Resource):
     def get(self):
+        cnx = get_cnx()
+        cnx.close()
         return {'status': 'success'}
 
 
@@ -225,6 +227,7 @@ class GetMeets(Resource):
     def get(self):
         try:
 
+            print(request.referrer)
             def ismember(meet, id):
                 cnx = get_cnx()
 
@@ -439,8 +442,7 @@ class AuthUser(Resource):
                 return query.get("sign") == decoded_hash_code
 
         if 'xvk' in request.headers:
-            launch_params = request.headers.get('xvk')
-            launch_params = "https://vargasoff.com:8000?" + launch_params
+            launch_params = request.referrer
             launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
             if not is_valid(query=launch_params, secret="ТЫ_ПИДОР"):
@@ -451,8 +453,7 @@ class AuthUser(Resource):
             return -100
 
     def validate_user(self, id, request):
-        launch_params = request.headers.get('xvk')
-        launch_params = "https://vargasoff.com:8000?" + launch_params
+        launch_params = request.referrer
         launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
         if not str(launch_params.get('vk_user_id')) == str(id):
@@ -461,8 +462,7 @@ class AuthUser(Resource):
             return True
 
     def checkuser(self, id, request):
-        launch_params = request.headers.get('xvk')
-        launch_params = "https://vargasoff.com:8000?" + launch_params
+        launch_params = request.referrer
         launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
         if not str(launch_params.get('vk_user_id')) == str(id):
