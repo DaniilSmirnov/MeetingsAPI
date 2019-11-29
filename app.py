@@ -20,7 +20,7 @@ api = Api(app)
 limiter = Limiter(
     app,
     key_func=get_remote_address,
-    default_limits=["10 per second"],
+    default_limits=["5 per second"],
 )
 
 
@@ -35,6 +35,137 @@ def get_cnx():
 class TestConnection(Resource):
     def get(self):
         return {'status': 'success'}
+
+
+class GetUser(Resource):
+
+    def get_owner_name(self, id):
+        cnx = get_cnx()
+        cursor = cnx.cursor()
+        query = "select name from members where idmembers = %s;"
+        data = (id,)
+        cursor.execute(query, data)
+        for item in cursor:
+            for value in item:
+                cnx.close()
+                return value
+
+    def get_owner_surname(self, id):
+        cnx = get_cnx()
+        cursor = cnx.cursor()
+        query = "select surname from members where idmembers = %s;"
+        data = (id,)
+        cursor.execute(query, data)
+        for item in cursor:
+            for value in item:
+                cnx.close()
+                return value
+
+    def get_owner_photo(self, id):
+        cnx = get_cnx()
+        cursor = cnx.cursor()
+        query = "select surname from members where idmembers = %s;"
+        data = (id,)
+        cursor.execute(query, data)
+        for item in cursor:
+            for value in item:
+                cnx.close()
+                return value
+
+
+class UpdateUser(Resource):
+    decorators = [limiter.limit("5 per second")]
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('first_name', type=str)
+        parser.add_argument('last_name', type=str)
+        parser.add_argument('photo_200', type=str)
+
+        args = parser.parse_args()
+
+        _id_client = AuthUser.check_sign(AuthUser, request)
+        if _id_client == -100:
+            return {'failed': 403}
+
+        _name = args['first_name']
+        _surname = args['last_name']
+        _photo = args['photo_200']
+
+        cnx = get_cnx()
+
+        cursor = cnx.cursor(buffered=True)
+        query = "update members set name = %s, surname = %s, photo = %s where idmembers = %s;"
+        data = (_name, _surname, _photo, _id_client)
+        cursor.execute(query, data)
+        cnx.commit()
+
+        cnx.close()
+
+        return {'status': 'Успешно'}
+
+
+class AddUser(Resource):
+    decorators = [limiter.limit("5 per second")]
+    def post(self):
+        try:
+            parser = reqparse.RequestParser()
+            parser.add_argument('first_name', type=str)
+            parser.add_argument('last_name', type=str)
+            parser.add_argument('photo_200', type=str)
+
+            args = parser.parse_args()
+
+            _id_client = AuthUser.check_sign(AuthUser, request)
+            if _id_client == -100:
+                return {'failed': 403}
+
+            _name = args['first_name']
+            _surname = args['last_name']
+            _photo = args['photo_200']
+
+            cnx = get_cnx()
+
+            cursor = cnx.cursor(buffered=True)
+            query = "insert into members values(%s, default, %s, %s, %s)"
+            data = (_id_client, _name, _surname, _photo)
+            cursor.execute(query, data)
+            cnx.commit()
+
+            cnx.close()
+
+            return {'status': 'Успешно'}
+        except BaseException:
+            return {'status': 'failed'}
+
+
+class IsFirst(Resource):
+    decorators = [limiter.limit("5 per second")]
+    def get(self):
+        try:
+            _id = AuthUser.check_sign(AuthUser, request)
+            if _id == -100:
+                return {'failed': 403}
+
+            cnx = get_cnx()
+
+            cursor = cnx.cursor(buffered=True)
+
+            query = "select count(idmembers) from members where idmembers = %s;"
+            data = (_id,)
+            cursor.execute(query, data)
+
+            for item in cursor:
+                for value in item:
+                    if value == 1:
+                        return False
+                    if value == 0:
+                        return True
+
+            cnx.close()
+
+        except BaseException as e:
+            return str(e)
+            return {'failed': 'error'}
 
 
 class AddMeet(Resource):
@@ -451,23 +582,21 @@ class RemoveComment(Resource):
         if _id == -100:
             return {'failed': 403}
 
-        # TODO: Добавить проверку на то, что юзер удаляет свой коммент или это админ\владелец митинга
-
-        query = "select count(idcomments)>0 from comments where idcomments = %s"
-        data = (_comment,)
+        query = "select count(idcomments) from comments where idcomments = %s and ownerid = %s"
+        data = (_comment, _id)
         cursor.execute(query, data)
         for item in cursor:
             for value in item:
-                if str(value) != "True":
+                if value < 1:
                     return {'success': False, 'failed': 'Comment doesnt exists'}
 
-        query = "delete from comments where idcomments = %s;"
+        query = "delete from comments where idcomments = %s and owner_id = %s;"
         cursor.execute(query, data)
         cnx.commit()
 
         cursor.close()
         cnx.close()
-        return {'success': False}
+        return {'success': True}
 
 
 class ApproveMeet(Resource):
@@ -593,137 +722,6 @@ class GetAllMeets(Resource):
                 return {'success': False}
         except BaseException as e:
             return str(e)
-
-
-class GetUser(Resource):
-
-    def get_owner_name(self, id):
-        cnx = get_cnx()
-        cursor = cnx.cursor()
-        query = "select name from members where idmembers = %s;"
-        data = (id,)
-        cursor.execute(query, data)
-        for item in cursor:
-            for value in item:
-                cnx.close()
-                return value
-
-    def get_owner_surname(self, id):
-        cnx = get_cnx()
-        cursor = cnx.cursor()
-        query = "select surname from members where idmembers = %s;"
-        data = (id,)
-        cursor.execute(query, data)
-        for item in cursor:
-            for value in item:
-                cnx.close()
-                return value
-
-    def get_owner_photo(self, id):
-        cnx = get_cnx()
-        cursor = cnx.cursor()
-        query = "select surname from members where idmembers = %s;"
-        data = (id,)
-        cursor.execute(query, data)
-        for item in cursor:
-            for value in item:
-                cnx.close()
-                return value
-
-
-class UpdateUser(Resource):
-    decorators = [limiter.limit("5 per second")]
-    def post(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument('first_name', type=str)
-        parser.add_argument('last_name', type=str)
-        parser.add_argument('photo_200', type=str)
-
-        args = parser.parse_args()
-
-        _id_client = AuthUser.check_sign(AuthUser, request)
-        if _id_client == -100:
-            return {'failed': 403}
-
-        _name = args['first_name']
-        _surname = args['last_name']
-        _photo = args['photo_200']
-
-        cnx = get_cnx()
-
-        cursor = cnx.cursor(buffered=True)
-        query = "update members set name = %s, surname = %s, photo = %s where idmembers = %s;"
-        data = (_name, _surname, _photo, _id_client)
-        cursor.execute(query, data)
-        cnx.commit()
-
-        cnx.close()
-
-        return {'status': 'Успешно'}
-
-
-class AddUser(Resource):
-    decorators = [limiter.limit("5 per second")]
-    def post(self):
-        try:
-            parser = reqparse.RequestParser()
-            parser.add_argument('first_name', type=str)
-            parser.add_argument('last_name', type=str)
-            parser.add_argument('photo_200', type=str)
-
-            args = parser.parse_args()
-
-            _id_client = AuthUser.check_sign(AuthUser, request)
-            if _id_client == -100:
-                return {'failed': 403}
-
-            _name = args['first_name']
-            _surname = args['last_name']
-            _photo = args['photo_200']
-
-            cnx = get_cnx()
-
-            cursor = cnx.cursor(buffered=True)
-            query = "insert into members values(%s, default, %s, %s, %s)"
-            data = (_id_client, _name, _surname, _photo)
-            cursor.execute(query, data)
-            cnx.commit()
-
-            cnx.close()
-
-            return {'status': 'Успешно'}
-        except BaseException:
-            return {'status': 'failed'}
-
-
-class IsFirst(Resource):
-    decorators = [limiter.limit("5 per second")]
-    def get(self):
-        try:
-            _id = AuthUser.check_sign(AuthUser, request)
-            if _id == -100:
-                return {'failed': 403}
-
-            cnx = get_cnx()
-
-            cursor = cnx.cursor(buffered=True)
-
-            query = "select count(idmembers) from members where idmembers = %s;"
-            data = (_id,)
-            cursor.execute(query, data)
-
-            for item in cursor:
-                for value in item:
-                    if value == 1:
-                        return False
-                    if value == 0:
-                        return True
-
-            cnx.close()
-
-        except BaseException as e:
-            return str(e)
-            return {'failed': 'error'}
 
 
 api.add_resource(TestConnection, '/TestConnection')
