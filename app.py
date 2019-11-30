@@ -10,6 +10,7 @@ from flask_cors import CORS
 from flask_restful import Resource, Api, reqparse
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from vkdata import notify
 
 app = Flask(__name__)
 
@@ -81,7 +82,7 @@ class UpdateUser(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('first_name', type=str)
         parser.add_argument('last_name', type=str)
-        parser.add_argument('photo_200', type=str)
+        parser.add_argument('photo_100', type=str)
 
         args = parser.parse_args()
 
@@ -91,7 +92,7 @@ class UpdateUser(Resource):
 
         _name = args['first_name']
         _surname = args['last_name']
-        _photo = args['photo_200']
+        _photo = args['photo_100']
 
         cnx = get_cnx()
 
@@ -113,7 +114,7 @@ class AddUser(Resource):
             parser = reqparse.RequestParser()
             parser.add_argument('first_name', type=str)
             parser.add_argument('last_name', type=str)
-            parser.add_argument('photo_200', type=str)
+            parser.add_argument('photo_100', type=str)
 
             args = parser.parse_args()
 
@@ -123,7 +124,7 @@ class AddUser(Resource):
 
             _name = args['first_name']
             _surname = args['last_name']
-            _photo = args['photo_200']
+            _photo = args['photo_100']
 
             cnx = get_cnx()
 
@@ -214,7 +215,7 @@ class AddMeet(Resource):
 
             cursor.close()
             cnx.close()
-            return {'success': True}
+            return {'success': 'Ваш митинг отправлен на модерацию, обычно это занимает до трех часов'}
 
         except BaseException as e:
             cursor.close()
@@ -227,7 +228,6 @@ class GetMeets(Resource):
     def get(self):
         try:
 
-            print(request.referrer)
             def ismember(meet, id):
                 cnx = get_cnx()
 
@@ -441,16 +441,13 @@ class AuthUser(Resource):
             except KeyError:
                 return query.get("sign") == decoded_hash_code
 
-        if 'xvk' in request.headers:
-            launch_params = request.referrer
-            launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
+        launch_params = request.referrer
+        launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
-            if not is_valid(query=launch_params, secret="ТЫ_ПИДОР"):
-                return -100
-            else:
-                return launch_params.get('vk_user_id')
-        else:
+        if not is_valid(query=launch_params, secret="VUc7I09bHOUYWjfFhx20"):
             return -100
+        else:
+            return launch_params.get('vk_user_id')
 
     def validate_user(self, id, request):
         launch_params = request.referrer
@@ -535,8 +532,6 @@ class GetMeetComments(Resource):
         if _id_client == -100:
             return {'failed': 403}
 
-        # TODO Добавить проверку что пользователь является участником митинга
-
         query = "select * from comments where meetingid = %s"
         data = (_meet,)
 
@@ -582,15 +577,16 @@ class RemoveComment(Resource):
         if _id == -100:
             return {'failed': 403}
 
-        query = "select count(idcomments) from comments where idcomments = %s and ownerid = %s"
+        query = "select count(idcomments) from comments where idcomments = %s and ownerid = %s;"
         data = (_comment, _id)
         cursor.execute(query, data)
         for item in cursor:
             for value in item:
                 if value < 1:
-                    return {'success': False, 'failed': 'Comment doesnt exists'}
+                    if not AuthUser.checkuser(_id, request):
+                        return {'success': False, 'failed': 'Comment doesnt exists'}
 
-        query = "delete from comments where idcomments = %s and owner_id = %s;"
+        query = "delete from comments where idcomments = %s"
         cursor.execute(query, data)
         cnx.commit()
 
@@ -626,6 +622,20 @@ class ApproveMeet(Resource):
             data = (_meet,)
             cursor.execute(query, data)
             cnx.commit()
+
+            query = "select name, ownerid from meetings where id = %s"
+            cursor.execute(query, data)
+            i = 0
+            for item in cursor:
+                for value in item:
+                    if i == 0:
+                        name = str(value)
+                    if i == 1:
+                        id = str(value)
+                    i += 1
+
+            notify(id, name)
+
             cursor.close()
             cnx.close()
             return {'success': True}
@@ -701,6 +711,9 @@ class GetAllMeets(Resource):
                             meet.update({'description': value})
                         if i == 3:
                             meet.update({'ownerid': value})
+                            meet.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
+                            meet.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
+                            meet.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
                         if i == 4:
                             meet.update({'members_amount': value})
                         if i == 5:
@@ -722,6 +735,14 @@ class GetAllMeets(Resource):
                 return {'success': False}
         except BaseException as e:
             return str(e)
+
+
+class GeoPosition(Resource):
+    def get(self):
+        pass
+
+    def post(self):
+        pass
 
 
 api.add_resource(TestConnection, '/TestConnection')
