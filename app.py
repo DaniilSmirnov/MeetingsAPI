@@ -10,7 +10,7 @@ from flask_cors import CORS
 from flask_restful import Resource, Api, reqparse
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from vkdata import notify
+from vkdata import notify, get_user_data
 
 app = Flask(__name__)
 
@@ -90,6 +90,14 @@ class UpdateUser(Resource):
         if _id_client == -100:
             return {'failed': 403}
 
+        try:
+            data = get_user_data(_id_client)
+            _name = data.get('first_name')
+            _surname = data.get('last_name')
+            _photo = data.get('photo_200')
+        except BaseException:
+            pass
+
         _name = args['first_name']
         _surname = args['last_name']
         _photo = args['photo_100']
@@ -122,11 +130,19 @@ class AddUser(Resource):
             if _id_client == -100:
                 return {'failed': 403}
 
+            cnx = get_cnx()
+
+            try:
+                data = get_user_data(_id_client)
+                _name = data.get('first_name')
+                _surname = data.get('last_name')
+                _photo = data.get('photo_200')
+            except BaseException:
+                pass
+
             _name = args['first_name']
             _surname = args['last_name']
             _photo = args['photo_100']
-
-            cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
             query = "insert into members values(%s, default, %s, %s, %s)"
@@ -192,9 +208,9 @@ class AddMeet(Resource):
             return {'failed': 'Некорректное название митинга'}
         if len(_description) == 0 or _description.isspace() or _description.isdigit():
             return {'failed': 'Некорректное описание митинга'}
-        if len(_start) == 0 or _start.isspace():
+        if len(_start) == 0 or _start.isspace() or str(_start) == 'undefined:00':
             return {'failed': 'Некорректная дата начала митинга'}
-        if len(_finish) == 0 or _finish.isspace():
+        if len(_finish) == 0 or _finish.isspace() or str(_finish) == 'undefined:00':
             return {'failed': 'Некорректная дата окончания митинга'}
         if len(_photo) == 0 or _photo.isspace() or _photo.isdigit():
             return {'failed': 'Некорректное фото митинга или ссылка на него'}

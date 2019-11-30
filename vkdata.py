@@ -11,4 +11,6 @@ def get_user_data(id):
 
 
 def notify(id, name):
-    vk.secure.sendNotification(user_id=id,message='Ваш митинг ' + name + ' прошел модерацию' )
+    vk.secure.sendNotification(user_id=id, message='Ваш митинг ' + name + ' прошел модерацию' )
+
+get_user_data()
