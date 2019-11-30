@@ -1,7 +1,5 @@
 from rank_bm25 import BM25Plus
-import difflib
 from Levenshtein import jaro_winkler as similarity
-import re
 
 
 def search(query):

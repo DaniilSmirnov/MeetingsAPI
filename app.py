@@ -765,6 +765,56 @@ class GeoPosition(Resource):
         if _id == -100:
             return {'failed': 403}
 
+        parser = reqparse.RequestParser()
+        parser.add_argument('meet', type=str)
+        args = parser.parse_args()
+
+        _meet = args['meet']
+
+        cnx = get_cnx()
+        cursor = cnx.cursor(buffered=True)
+
+        query = "select lat, lon from geoposition where id = %s;"
+        data = (_id, )
+        cursor.execute(query, data)
+
+        i = 0
+        for item in cursor:
+            lat = 0
+            lon = 0
+            for value in item:
+                if i == 0:
+                    lat = float(value)
+                if i == 1:
+                    lon = float(value)
+                i += 1
+            if lat != 0 and lon != 0:
+                user = (lat, lon)
+            else:
+                return {'failed':'Мы не можем вас найти'}
+
+
+        query = "select lat, lon from geoposition where id in (select idmember from participation where idmeetings = %s and idmember is not %s)"
+        data = (_meet, _id)
+        cursor.execute(query, data)
+        i = 0
+        for item in cursor:
+            lat = 0
+            lon = 0
+            for value in item:
+                if i == 0:
+                    lat = float(value)
+                if i == 1:
+                    lon = float(value)
+                i += 1
+            if lat != 0 and lon != 0:
+                another_user = (lat, lon)
+                if haversine(user, another_user) < 5:
+                    return {'status':'success'}
+                else:
+                    return {'failed': 'Никого нет рядом'}
+
+
     def post(self):
         try:
             parser = reqparse.RequestParser()
