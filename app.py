@@ -12,6 +12,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from vkdata import notify, get_user_data
 from haversine import haversine, Unit
+from demo import search
 
 app = Flask(__name__)
 
@@ -200,13 +201,13 @@ class AddMeet(Resource):
         _finish = args['finish']
         _photo = args['photo']
 
-        if (len(_name) == 0) or _name.isspace() or _name.isdigit() or len(_name) > 45:
+        if (len(_name) == 0) or _name.isspace() or _name.isdigit() or len(_name) > 45 or search(_name):
             return {'failed': 'Некорректное название митинга'}
-        if len(_description) == 0 or _description.isspace() or _description.isdigit() or len(_description) > 254:
+        if len(_description) == 0 or _description.isspace() or _description.isdigit() or len(_description) > 254 or search(_description):
             return {'failed': 'Некорректное описание митинга'}
-        if len(_start) == 0 or _start.isspace() or str(_start) == 'undefined:00':
+        if len(_start) == 0 or _start.isspace() or _start == 'undefined:00' or _start == '0000-00-00 00:00:00:00':
             return {'failed': 'Некорректная дата начала митинга'}
-        if len(_finish) == 0 or _finish.isspace() or str(_finish) == 'undefined:00':
+        if len(_finish) == 0 or _finish.isspace() or str(_finish) == 'undefined:00' or _finish == '0000-00-00 00:00:00:00':
             return {'failed': 'Некорректная дата окончания митинга'}
         if len(_photo) == 0 or _photo.isspace() or _photo.isdigit():
             return {'failed': 'Некорректное фото митинга или ссылка на него'}
