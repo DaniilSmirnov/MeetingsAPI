@@ -7,10 +7,9 @@ vk = vk_session.get_api()
 
 def get_user_data(id):
     response = (vk.users.get(user_ids=id, fields='first_name,last_name,photo_100'))
-    return {response.get('first_name, last_name, photo_100')}
+    return response
 
 
 def notify(id, name):
     vk.secure.sendNotification(user_id=id, message='Ваш митинг ' + name + ' прошел модерацию' )
 
-get_user_data()

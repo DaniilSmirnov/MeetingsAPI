@@ -183,7 +183,6 @@ class IsFirst(Resource):
             cnx.close()
 
         except BaseException as e:
-            return str(e)
             return {'failed': 'error'}
 
 
@@ -634,8 +633,8 @@ class ApproveMeet(Resource):
                     if value == 1:
                         return {'failed': 'already approved'}
 
-            query = "update meetings set ismoderated = 1 where id = %s;"
-            data = (_meet,)
+            query = "update meetings set ismoderated = 1, approver = %s where id = %s;"
+            data = (_id, _meet)
             cursor.execute(query, data)
             cnx.commit()
 
