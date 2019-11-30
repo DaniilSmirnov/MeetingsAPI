@@ -11,5 +11,7 @@ def get_user_data(id):
 
 
 def notify(id, name):
-    vk.secure.sendNotification(user_id=id, message='Ваш митинг ' + name + ' прошел модерацию' )
-
+    try:
+        vk.secure.sendNotification(user_id=id, message='Ваш митинг ' + name + ' прошел модерацию' )
+    except BaseException:
+        pass

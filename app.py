@@ -96,11 +96,9 @@ class UpdateUser(Resource):
             _surname = data.get('last_name')
             _photo = data.get('photo_200')
         except BaseException:
-            pass
-
-        _name = args['first_name']
-        _surname = args['last_name']
-        _photo = args['photo_100']
+            _name = args['first_name']
+            _surname = args['last_name']
+            _photo = args['photo_100']
 
         cnx = get_cnx()
 
@@ -138,11 +136,9 @@ class AddUser(Resource):
                 _surname = data.get('last_name')
                 _photo = data.get('photo_200')
             except BaseException:
-                pass
-
-            _name = args['first_name']
-            _surname = args['last_name']
-            _photo = args['photo_100']
+                _name = args['first_name']
+                _surname = args['last_name']
+                _photo = args['photo_100']
 
             cursor = cnx.cursor(buffered=True)
             query = "insert into members values(%s, default, %s, %s, %s)"
@@ -223,7 +219,7 @@ class AddMeet(Resource):
 
             cursor = cnx.cursor(buffered=True)
 
-            query = "insert into meetings values (default, %s, %s, %s, default, %s, %s, default, %s)"
+            query = "insert into meetings values (default, %s, %s, %s, default, %s, %s, default, %s, null)"
             data = (_name, _description, _owner_id, _start, _finish, _photo)
             cursor.execute(query, data)
             cnx.commit()
@@ -235,6 +231,7 @@ class AddMeet(Resource):
         except BaseException as e:
             cursor.close()
             cnx.close()
+            print(str(e))
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
 
 
@@ -639,6 +636,7 @@ class ApproveMeet(Resource):
             cnx.commit()
 
             query = "select name, ownerid from meetings where id = %s"
+            data = (_id, )
             cursor.execute(query, data)
             i = 0
             for item in cursor:
@@ -647,9 +645,8 @@ class ApproveMeet(Resource):
                         name = str(value)
                     if i == 1:
                         id = str(value)
+                        notify(id, name)
                     i += 1
-
-            notify(id, name)
 
             cursor.close()
             cnx.close()
