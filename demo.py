@@ -13,8 +13,6 @@ def search(query):
     for item in subquery:
         query.append(item.replace('\n', ''))
 
-    print(query)
-
     common = 0
     counter = 0
 
@@ -23,32 +21,23 @@ def search(query):
             if len(item) < 2:
                 continue
             if item.lower().find(word) != -1:
-                print(item, word)
                 common += 1
                 #counter += 1
             if similarity(item, word) > 0.8:
-                print(item, word)
-                print(similarity(item, word))
                 common += similarity(item, word)
             #counter += 1
 
 
     bm25 = BM25Plus(curses)
-    print(bm25.get_scores(query))
-    print(" ".join(bm25.get_top_n(query, curses, n=1)[0]))
     if (" ".join(bm25.get_top_n(query, curses, n=1)[0])) != 'заглушка':
         common += 1
 
     common /= 10      #среднее требует доработки
-    print('Среднее', common)
     if common > 0.2:
-        print("Ругательство")
         return True
     if (common > 0.08) and (common < 0.2):
-        print("Подозрительная строка")
         return True
     if common < 0.08:
-        print("Чистая строка")
         return False
 
 corpus = [
