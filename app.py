@@ -202,7 +202,7 @@ class AddMeet(Resource):
 
         if (len(_name) == 0) or _name.isspace() or _name.isdigit() or len(_name) > 45:
             return {'failed': 'Некорректное название митинга'}
-        if len(_description) == 0 or _description.isspace() or _description.isdigit() or len(_description) > 255:
+        if len(_description) == 0 or _description.isspace() or _description.isdigit() or len(_description) > 254:
             return {'failed': 'Некорректное описание митинга'}
         if len(_start) == 0 or _start.isspace() or str(_start) == 'undefined:00':
             return {'failed': 'Некорректная дата начала митинга'}
