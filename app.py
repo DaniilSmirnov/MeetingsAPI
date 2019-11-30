@@ -11,6 +11,7 @@ from flask_restful import Resource, Api, reqparse
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from vkdata import notify, get_user_data
+from haversine import haversine, Unit
 
 app = Flask(__name__)
 
@@ -199,9 +200,9 @@ class AddMeet(Resource):
         _finish = args['finish']
         _photo = args['photo']
 
-        if (len(_name) == 0) or _name.isspace() or _name.isdigit():
+        if (len(_name) == 0) or _name.isspace() or _name.isdigit() or len(_name) > 45:
             return {'failed': 'Некорректное название митинга'}
-        if len(_description) == 0 or _description.isspace() or _description.isdigit():
+        if len(_description) == 0 or _description.isspace() or _description.isdigit() or len(_description) > 255:
             return {'failed': 'Некорректное описание митинга'}
         if len(_start) == 0 or _start.isspace() or str(_start) == 'undefined:00':
             return {'failed': 'Некорректная дата начала митинга'}
@@ -371,6 +372,14 @@ class AddMeetMember(Resource):
 
             cursor = cnx.cursor(buffered=True)
 
+            query = "select count(id) from meetings where id = %s and ismoderated = 1;"
+            data = (_meet, )
+            cursor.execute(query, data)
+            for item in cursor:
+                for value in item:
+                    if value != 1:
+                        return {'failed': 'Meet is unavaible'}
+
             query = "select count(idmember) from participation where idmember = %s and idmeeting = %s;"
             data = (_id_client, _meet,)
             cursor.execute(query, data)
@@ -383,7 +392,7 @@ class AddMeetMember(Resource):
             query = "insert into participation values (default, %s, %s);"
             data = (_meet, _id_client,)
             cursor.execute(query, data)
-            query = "update meetings set members_amount = members_amount + 1 where id = %s"
+            query = "update meetings set members_amount = members_amount + 1 where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
             cnx.commit()
@@ -751,10 +760,44 @@ class GetAllMeets(Resource):
 
 class GeoPosition(Resource):
     def get(self):
-        pass
+        _id = AuthUser.check_sign(AuthUser, request)
+        if _id == -100:
+            return {'failed': 403}
 
     def post(self):
-        pass
+        try:
+            parser = reqparse.RequestParser()
+            parser.add_argument('lat', type=str)
+            parser.add_argument('long', type=str)
+            args = parser.parse_args()
+
+            _lat = args['lat']
+            _lon = args['long']
+
+            if len(_lat) > 2 or len(_lon) > 3 or float(_lat) not in range(-90, 90) or float(_lon) not in range(-180, 180):
+                return {'failed': 'wrong data'}
+
+            _id = AuthUser.check_sign(AuthUser, request)
+            if _id == -100:
+                return {'failed': 403}
+
+            cnx = get_cnx()
+            cursor = cnx.cursor(buffered=True)
+
+            try:
+                query = 'insert into geoposition values (%s, %s, %s);'
+                data = (_id, _lat, _lon)
+                cursor.execute(query, data)
+            except BaseException:
+                query = 'update geoposition set lat = %s, lon = %s where userid = %s;'
+                data = (_lat, _lon, _id)
+                cursor.execute(query, data)
+
+            cnx.commit()
+            cnx.close()
+            return {'status': 'success'}
+        except BaseException:
+            return {'status': 'failed'}
 
 
 api.add_resource(TestConnection, '/TestConnection')
@@ -781,3 +824,5 @@ api.add_resource(GetAllMeets, '/admin/GetAllMeets')
 if __name__ == '__main__':
     context = ('/etc/ssl/vargasoff.ru.crt', '/etc/ssl/private.key')
     app.run(host='0.0.0.0', port='8000', ssl_context=context)
+
+#TODO Валидация фото и их размера
