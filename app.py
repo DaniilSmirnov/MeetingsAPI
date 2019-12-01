@@ -69,7 +69,7 @@ class GetUser(Resource):
     def get_owner_photo(self, id):
         cnx = get_cnx()
         cursor = cnx.cursor()
-        query = "select surname from members where idmembers = %s;"
+        query = "select photo from members where idmembers = %s;"
         data = (id,)
         cursor.execute(query, data)
         for item in cursor:
@@ -96,7 +96,7 @@ class UpdateUser(Resource):
             data = get_user_data(_id_client)
             _name = data.get('first_name')
             _surname = data.get('last_name')
-            _photo = data.get('photo_200')
+            _photo = data.get('photo_100')
         except BaseException:
             _name = args['first_name']
             _surname = args['last_name']
@@ -136,7 +136,7 @@ class AddUser(Resource):
                 data = get_user_data(_id_client)
                 _name = data.get('first_name')
                 _surname = data.get('last_name')
-                _photo = data.get('photo_200')
+                _photo = data.get('photo_100')
             except BaseException:
                 _name = args['first_name']
                 _surname = args['last_name']
