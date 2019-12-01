@@ -791,8 +791,7 @@ class GeoPosition(Resource):
             if lat != 0 and lon != 0:
                 user = (lat, lon)
             else:
-                return {'failed':'Мы не можем вас найти'}
-
+                return {'failed': 'Мы не можем вас найти'}
 
         query = "select lat, lon from geoposition where id in (select idmember from participation where idmeetings = %s and idmember is not %s)"
         data = (_meet, _id)
@@ -810,10 +809,9 @@ class GeoPosition(Resource):
             if lat != 0 and lon != 0:
                 another_user = (lat, lon)
                 if haversine(user, another_user) < 5:
-                    return {'status':'success'}
+                    return {'status': 'success'}
                 else:
                     return {'failed': 'Никого нет рядом'}
-
 
     def post(self):
         try:
@@ -875,5 +873,3 @@ api.add_resource(GetAllMeets, '/admin/GetAllMeets')
 if __name__ == '__main__':
     context = ('/etc/ssl/vargasoff.ru.crt', '/etc/ssl/private.key')
     app.run(host='0.0.0.0', port='8000', ssl_context=context)
-
-#TODO Валидация фото и их размера
