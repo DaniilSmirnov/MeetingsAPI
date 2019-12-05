@@ -13,6 +13,7 @@ from flask_limiter.util import get_remote_address
 from vkdata import notify, get_user_data
 from haversine import haversine, Unit
 from demo import search
+from stories import prepare_storie
 
 app = Flask(__name__)
 
@@ -81,26 +82,15 @@ class GetUser(Resource):
 class UpdateUser(Resource):
     decorators = [limiter.limit("5 per second")]
     def post(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument('first_name', type=str)
-        parser.add_argument('last_name', type=str)
-        parser.add_argument('photo_100', type=str)
-
-        args = parser.parse_args()
 
         _id_client = AuthUser.check_sign(AuthUser, request)
         if _id_client == -100:
             return {'failed': 403}
 
-        try:
-            data = get_user_data(_id_client)
-            _name = data.get('first_name')
-            _surname = data.get('last_name')
-            _photo = data.get('photo_100')
-        except BaseException:
-            _name = args['first_name']
-            _surname = args['last_name']
-            _photo = args['photo_100']
+        data = get_user_data(_id_client)
+        _name = data[0].get('first_name')
+        _surname = data[0].get('last_name')
+        _photo = data[0].get('photo_100')
 
         cnx = get_cnx()
 
@@ -119,12 +109,6 @@ class AddUser(Resource):
     decorators = [limiter.limit("5 per second")]
     def post(self):
         try:
-            parser = reqparse.RequestParser()
-            parser.add_argument('first_name', type=str)
-            parser.add_argument('last_name', type=str)
-            parser.add_argument('photo_100', type=str)
-
-            args = parser.parse_args()
 
             _id_client = AuthUser.check_sign(AuthUser, request)
             if _id_client == -100:
@@ -132,15 +116,10 @@ class AddUser(Resource):
 
             cnx = get_cnx()
 
-            try:
-                data = get_user_data(_id_client)
-                _name = data.get('first_name')
-                _surname = data.get('last_name')
-                _photo = data.get('photo_100')
-            except BaseException:
-                _name = args['first_name']
-                _surname = args['last_name']
-                _photo = args['photo_100']
+            data = get_user_data(_id_client)
+            _name = data[0].get('first_name')
+            _surname = data[0].get('last_name')
+            _photo = data[0].get('photo_100')
 
             cursor = cnx.cursor(buffered=True)
             query = "insert into members values(%s, default, %s, %s, %s)"
@@ -201,9 +180,9 @@ class AddMeet(Resource):
         _finish = args['finish']
         _photo = args['photo']
 
-        if (len(_name) == 0) or _name.isspace() or _name.isdigit() or len(_name) > 45 or search(_name):
+        if (len(_name) == 0) or _name.isspace() or _name.isdigit() or len(_name) > 45:
             return {'failed': 'Некорректное название митинга'}
-        if len(_description) == 0 or _description.isspace() or _description.isdigit() or len(_description) > 254 or search(_description):
+        if len(_description) == 0 or _description.isspace() or _description.isdigit() or len(_description) > 254:
             return {'failed': 'Некорректное описание митинга'}
         if len(_start) == 0 or _start.isspace() or _start == 'undefined:00' or _start == '0000-00-00 00:00:00:00':
             return {'failed': 'Некорректная дата начала митинга'}
@@ -289,9 +268,9 @@ class GetMeets(Resource):
                     if i == 4:
                         meet.update({'members_amount': value})
                     if i == 5:
-                        meet.update({'start': str(value)})
+                        meet.update({'start': str(value)[0:-9]})
                     if i == 6:
-                        meet.update({'finish': str(value)})
+                        meet.update({'finish': str(value)[0:-9]})
                     if i == 8:
                         meet.update({'photo': str(value)})
                         meet.update({'ismember': ismember(id, _id_client)})
@@ -303,6 +282,7 @@ class GetMeets(Resource):
         except BaseException as e:
             cursor.close()
             cnx.close()
+            print(str(e))
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
 
 
@@ -339,9 +319,9 @@ class GetUserMeets(Resource):
                     if i == 4:
                         meet.update({'members_amount': value})
                     if i == 5:
-                        meet.update({'start': str(value)})
+                        meet.update({'start': str(value)[0:-9]})
                     if i == 6:
-                        meet.update({'finish': str(value)})
+                        meet.update({'finish': str(value)[0:-9]})
                     if i == 8:
                         meet.update({'photo': str(value)})
                     i += 1
@@ -654,8 +634,16 @@ class ApproveMeet(Resource):
                     if i == 0:
                         name = str(value)
                     if i == 1:
-                        id = str(value)
+                        id = int(value)
                         notify(id, name)
+                        query = "insert into participation values (default, %s, %s);"
+                        data = (_id, id,)
+                        cursor.execute(query, data)
+                        query = "update meetings set members_amount = members_amount + 1 where id = %s;"
+                        data = (_meet,)
+                        cursor.execute(query, data)
+                        cnx.commit()
+
                     i += 1
 
             cursor.close()
@@ -739,9 +727,9 @@ class GetAllMeets(Resource):
                         if i == 4:
                             meet.update({'members_amount': value})
                         if i == 5:
-                            meet.update({'start': str(value)})
+                            meet.update({'start': str(value)[0:-9]})
                         if i == 6:
-                            meet.update({'finish': str(value)})
+                            meet.update({'finish': str(value)[0:-9]})
                         if i == 7:
                             meet.update({'approved': int(value)})
                         if i == 8:
@@ -849,6 +837,33 @@ class GeoPosition(Resource):
             return {'status': 'failed'}
 
 
+class getStory(Resource):
+    def get(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('meet', type=str)
+        args = parser.parse_args()
+
+        _meet = args['meet']
+
+        cnx = get_cnx()
+        cursor = cnx.cursor(buffered=True)
+
+        query = 'select name, photo from meetings where id = %s;'
+        data = (_meet, )
+        cursor.execute(query, data)
+
+        i = 0
+        for item in cursor:
+            for value in item:
+                if i == 0:
+                    name = value
+                if i == 1:
+                    photo = value
+                    image = prepare_storie(photo, name)
+                    return image
+                i += 1
+
+
 api.add_resource(TestConnection, '/TestConnection')
 
 api.add_resource(IsFirst, '/IsFirst')
@@ -869,6 +884,8 @@ api.add_resource(RemoveComment, '/RemoveComment')
 api.add_resource(ApproveMeet, '/admin/Approve')
 api.add_resource(DeApproveMeet, '/admin/DeApprove')
 api.add_resource(GetAllMeets, '/admin/GetAllMeets')
+
+api.add_resource(getStory, '/getStory')
 
 if __name__ == '__main__':
     context = ('/etc/ssl/vargasoff.ru.crt', '/etc/ssl/private.key')

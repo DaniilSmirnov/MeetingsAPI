@@ -1,5 +1,5 @@
-from rank_bm25 import BM25Plus
 from Levenshtein import jaro_winkler as similarity
+from rank_bm25 import BM25Plus
 
 
 def search(query):
@@ -12,7 +12,6 @@ def search(query):
         query.append(item.replace('\n', ''))
 
     common = 0
-    counter = 0
 
     for item in query:
         for word in corpus:
@@ -22,22 +21,21 @@ def search(query):
                 continue
             if item.lower().find(word) != -1:
                 return True
-                #counter += 1
             if similarity(item, word) > 0.8:
                 common += similarity(item, word)
-            #counter += 1
 
     bm25 = BM25Plus(curses)
     if (" ".join(bm25.get_top_n(query, curses, n=1)[0])) != 'заглушка':
         common += 1
 
-    common /= 10      #среднее требует доработки
+    common /= 10  # среднее требует доработки
     if common > 0.2:
         return True
     if (common > 0.08) and (common < 0.2):
         return True
     if common < 0.08:
         return False
+
 
 corpus = [
     "блять", "сука", "пиздец", "уебок", "тварь", "хуй", "пизда", "ебать", "ёбанный", "гомик",
