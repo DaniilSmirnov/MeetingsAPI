@@ -180,16 +180,16 @@ class AddMeet(Resource):
         _finish = args['finish']
         _photo = args['photo']
 
-        if (len(_name) == 0) or _name.isspace() or _name.isdigit() or len(_name) > 45:
-            return {'failed': 'Некорректное название митинга'}
-        if len(_description) == 0 or _description.isspace() or _description.isdigit() or len(_description) > 254:
-            return {'failed': 'Некорректное описание митинга'}
+        if (len(_name) == 0) or _name.isspace() or _name.isdigit() or len(_name) > 45 or search(_name):
+            return {'failed': 'Некорректное название петиции'}
+        if len(_description) == 0 or _description.isspace() or _description.isdigit() or len(_description) > 254 or search(_description):
+            return {'failed': 'Некорректное описание петиции'}
         if len(_start) == 0 or _start.isspace() or _start == 'undefined:00' or _start == '0000-00-00 00:00:00:00':
-            return {'failed': 'Некорректная дата начала митинга'}
+            return {'failed': 'Некорректная дата начала петиции'}
         if len(_finish) == 0 or _finish.isspace() or str(_finish) == 'undefined:00' or _finish == '0000-00-00 00:00:00:00':
-            return {'failed': 'Некорректная дата окончания митинга'}
+            return {'failed': 'Некорректная дата окончания петиции'}
         if len(_photo) == 0 or _photo.isspace() or _photo.isdigit():
-            return {'failed': 'Некорректное фото митинга или ссылка на него'}
+            return {'failed': 'Некорректная обложка петиции'}
 
         _owner_id = AuthUser.check_sign(AuthUser, request)
         if _owner_id == -100:
@@ -200,14 +200,14 @@ class AddMeet(Resource):
 
             cursor = cnx.cursor(buffered=True)
 
-            query = "insert into meetings values (default, %s, %s, %s, default, %s, %s, default, %s, null)"
+            query = "insert into meetings values (default, %s, %s, %s, default, %s, %s, default, %s, null, 1)"
             data = (_name, _description, _owner_id, _start, _finish, _photo)
             cursor.execute(query, data)
             cnx.commit()
 
             cursor.close()
             cnx.close()
-            return {'success': 'Ваш митинг отправлен на модерацию, обычно это занимает до трех часов'}
+            return {'success': 'Ваша петиция отправлена на модерацию, обычно это занимает до трех часов'}
 
         except BaseException as e:
             cursor.close()
@@ -446,13 +446,14 @@ class AuthUser(Resource):
         launch_params = request.referrer
         launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
-        if not is_valid(query=launch_params, secret="VUc7I09bHOUYWjfFhx20"):
+        if not is_valid(query=launch_params, secret="kF0Pz974mrpDRYvUStPa"):
             return -100
         else:
             return launch_params.get('vk_user_id')
 
     def validate_user(self, id, request):
         launch_params = request.referrer
+        #print(request.referrer)
         launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
         if not str(launch_params.get('vk_user_id')) == str(id):
@@ -489,7 +490,7 @@ class AuthUser(Resource):
 
 
 class AddComment(Resource):
-    decorators = [limiter.limit("5 per second")]
+    decorators = [limiter.limit("5 per minute")]
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
@@ -502,6 +503,9 @@ class AddComment(Resource):
 
         _meet = args['meet']
         _comment = args['comment']
+
+        if search(_comment) or _comment.isspace():
+            return {'failed', 'Не корректный текст комментария'}
 
         _id_client = AuthUser.check_sign(AuthUser, request)
         if _id_client == -100:
@@ -521,7 +525,7 @@ class GetMeetComments(Resource):
     decorators = [limiter.limit("5 per second")]
     def get(self):
         parser = reqparse.RequestParser()
-        parser.add_argument('meet', type=str)
+        parser.add_argument('meet', type=int)
         args = parser.parse_args()
 
         cnx = get_cnx()
@@ -545,11 +549,13 @@ class GetMeetComments(Resource):
             for value in item:
                 if i == 0:
                     comment.update({'id': value})
-                    id = str(value)
                 if i == 1:
                     comment.update({'comment': value})
                 if i == 2:
                     comment.update({'ownerid': value})
+                    comment.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
+                    comment.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
+                    comment.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
                 if i == 3:
                     comment.update({'meetingid': value})
 
@@ -626,7 +632,7 @@ class ApproveMeet(Resource):
             cnx.commit()
 
             query = "select name, ownerid from meetings where id = %s"
-            data = (_id, )
+            data = (_meet, )
             cursor.execute(query, data)
             i = 0
             for item in cursor:
@@ -637,7 +643,7 @@ class ApproveMeet(Resource):
                         id = int(value)
                         notify(id, name)
                         query = "insert into participation values (default, %s, %s);"
-                        data = (_id, id,)
+                        data = (_meet, id)
                         cursor.execute(query, data)
                         query = "update meetings set members_amount = members_amount + 1 where id = %s;"
                         data = (_meet,)
@@ -656,6 +662,43 @@ class ApproveMeet(Resource):
 
 
 class DeApproveMeet(Resource):
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('meet', type=int)
+        args = parser.parse_args()
+
+        cnx = get_cnx()
+
+        cursor = cnx.cursor(buffered=True)
+
+        _meet = args['meet']
+        _id = AuthUser.check_sign(AuthUser, request)
+        if _id == -100:
+            return {'failed': 403}
+
+        if AuthUser.checkuser(AuthUser, _id, request):
+            query = "select ismoderated from meetings where id = %s;"
+            data = (_meet,)
+            cursor.execute(query, data)
+            for item in cursor:
+                for value in item:
+                    if value == 0:
+                        return {'failed': 'already deapproved'}
+
+            query = "update meetings set ismoderated = 0 where id = %s;"
+            data = (_meet,)
+            cursor.execute(query, data)
+            cnx.commit()
+            cursor.close()
+            cnx.close()
+            return {'success': True}
+        else:
+            cursor.close()
+            cnx.close()
+            return {'success': False}
+
+
+class DenyMeet(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
@@ -864,6 +907,41 @@ class getStory(Resource):
                 i += 1
 
 
+class AddGroup(Resource):
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('_id group', type=str)
+        args = parser.parse_args()
+
+        _id_group = args['id_group']
+
+        _id = AuthUser.check_sign(AuthUser, request)
+        if _id == -100:
+            return {'failed': 403}
+
+        if _id_group.isdigit() and int(_id_group) > 0:
+            return {'success', False}
+
+        #TODO проверка на то, что юзер реально с правами в группе
+
+        try:
+            _id_group = int(_id_group)
+        except BaseException:
+            pass
+
+        data = get_user_data(_id_group)
+        _name = data[0].get('name')
+        _photo = data[0].get('photo_100')
+
+
+class UpdateGroup(Resource):
+    pass
+
+
+class GetByGroup(Resource):
+    pass
+
+
 api.add_resource(TestConnection, '/TestConnection')
 
 api.add_resource(IsFirst, '/IsFirst')
@@ -886,6 +964,7 @@ api.add_resource(DeApproveMeet, '/admin/DeApprove')
 api.add_resource(GetAllMeets, '/admin/GetAllMeets')
 
 api.add_resource(getStory, '/getStory')
+api.add_resource(GeoPosition, '/GeoPosition')
 
 if __name__ == '__main__':
     context = ('/etc/ssl/vargasoff.ru.crt', '/etc/ssl/private.key')
