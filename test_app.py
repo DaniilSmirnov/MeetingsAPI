@@ -50,9 +50,9 @@ def check_url(url):
 
 
 def get_cnx():
-    cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                  host='0.0.0.0',
-                                  database='meets')
+    cnx = mysql.connector.connect(user='root', password='i130813',
+                                  host='127.0.0.1',
+                                  database='mydb')
 
     return cnx
 
@@ -71,9 +71,6 @@ def ismember(meet, id):
                 return 1
             else:
                 return 0
-
-
-def prepare_meet(cursor):
 
 
 class TestConnection(Resource):
@@ -339,81 +336,6 @@ class GetMeets(Resource):
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
 
 
-class GetMeet(Resource):
-    decorators = [limiter.limit("5 per second")]
-
-    def get(self):
-        try:
-            parser = reqparse.RequestParser()
-            parser.add_argument('meet', type=int)
-            args = parser.parse_args()
-            _meet = args['meet']
-            def ismember(meet, id):
-                cnx = get_cnx()
-
-                cursor = cnx.cursor(buffered=True)
-                query = "select count(id) from meetings where id = %s and id in (select idmeeting from participation where idmember = %s);"
-                data = (meet, id)
-                cursor.execute(query, data)
-
-                for item in cursor:
-                    for value in item:
-                        if value > 0:
-                            return 1
-                        else:
-                            return 0
-
-                cnx.close()
-
-            _id_client = AuthUser.check_sign(AuthUser, request)
-            if _id_client == -100:
-                return {'failed': 403}
-
-            cnx = get_cnx()
-
-            cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where id = %s and ismoderated = 1;"
-
-            response = []
-            data = (_meet, )
-            cursor.execute(query, data)
-            for item in cursor:
-                i = 0
-                meet = {}
-                for value in item:
-                    if i == 0:
-                        meet.update({'id': value})
-                        id = value
-                    if i == 1:
-                        meet.update({'name': value})
-                    if i == 2:
-                        meet.update({'description': value})
-                    if i == 3:
-                        meet.update({'ownerid': value})
-                        meet.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
-                        meet.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
-                        meet.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
-                    if i == 4:
-                        meet.update({'members_amount': value})
-                    if i == 5:
-                        meet.update({'start': str(value)[0:-9]})
-                    if i == 6:
-                        meet.update({'finish': str(value)[0:-9]})
-                    if i == 8:
-                        meet.update({'photo': str(value)})
-                        meet.update({'ismember': ismember(id, _id_client)})
-                    i += 1
-                response.append(meet)
-            cursor.close()
-            cnx.close()
-            return response
-        except BaseException as e:
-            cursor.close()
-            cnx.close()
-            print(str(e))
-            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
-
-
 class GetUserMeets(Resource):
     decorators = [limiter.limit("5 per second")]
 
@@ -466,59 +388,6 @@ class GetUserMeets(Resource):
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
 
 
-class GetOwneredMeets(Resource):
-    decorators = [limiter.limit("5 per second")]
-
-    def get(self):
-        try:
-            _id_client = AuthUser.check_sign(AuthUser, request)
-            if _id_client == -100:
-                return {'failed': 403}
-
-            cnx = get_cnx()
-
-            cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where ownerid = %s;);"
-            data = (_id_client,)
-            response = []
-            cursor.execute(query, data)
-            for item in cursor:
-                i = 0
-                meet = {}
-                for value in item:
-                    if i == 0:
-                        meet.update({'id': value})
-                        id = value
-                    if i == 1:
-                        meet.update({'name': value})
-                    if i == 2:
-                        meet.update({'description': value})
-                    if i == 3:
-                        meet.update({'ownerid': value})
-                        meet.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
-                        meet.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
-                        meet.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
-                    if i == 4:
-                        meet.update({'members_amount': value})
-                    if i == 5:
-                        meet.update({'start': str(value)[0:-9]})
-                    if i == 6:
-                        meet.update({'finish': str(value)[0:-9]})
-                    if i == 8:
-                        meet.update({'photo': str(value)})
-                        meet.update({'ismember': ismember(id, _id_client)})
-                        meet.update({'isowner': True})
-                    i += 1
-                response.append(meet)
-            cursor.close()
-            cnx.close()
-            return response
-        except BaseException as e:
-            cursor.close()
-            cnx.close()
-            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
-
-
 class GetExpiredUserMeets(Resource):
     decorators = [limiter.limit("5 per second")]
 
@@ -558,7 +427,6 @@ class GetExpiredUserMeets(Resource):
                         meet.update({'finish': str(value)[0:-9]})
                     if i == 8:
                         meet.update({'photo': str(value)})
-                        meet.update({'isexpired': True})
                     i += 1
                 response.append(meet)
             cursor.close()
@@ -1225,8 +1093,6 @@ api.add_resource(AddMeetMember, '/AddMeetMember')
 api.add_resource(RemoveMeetMember, '/RemoveMeetMember')
 api.add_resource(GetUserMeets, '/GetUserMeets')
 api.add_resource(GetExpiredUserMeets, '/GetExpiredUserMeets')
-api.add_resource(GetOwneredMeets, '/GetOwneredMeets')
-api.add_resource(GetMeet, '/GetMeet')
 
 api.add_resource(GetMeetComments, '/GetMeetComments')
 api.add_resource(AddComment, '/AddComment')
@@ -1241,5 +1107,4 @@ api.add_resource(getStory, '/getStory')
 api.add_resource(GeoPosition, '/GeoPosition')
 
 if __name__ == '__main__':
-    context = ('/etc/ssl/vargasoff.ru.crt', '/etc/ssl/private.key')
-    app.run(host='0.0.0.0', port='8000', ssl_context=context)
+    app.run(host='0.0.0.0', port='8000')
