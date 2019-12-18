@@ -68,12 +68,60 @@ def ismember(meet, id):
     for item in cursor:
         for value in item:
             if value > 0:
-                return 1
+                return True
             else:
-                return 0
+                return False
 
 
-def prepare_meet(cursor):
+def isowner(meet, id):
+    cnx = get_cnx()
+
+    cursor = cnx.cursor(buffered=True)
+    query = "select count(id) from meetings where id = %s and ownerid = %s;"
+    data = (meet, id)
+    cursor.execute(query, data)
+
+    for item in cursor:
+        for value in item:
+            if value > 0:
+                return True
+            else:
+                return False
+
+
+def prepare_meet(cursor, _id_client):
+    response = []
+    for item in cursor:
+        i = 0
+        meet = {}
+        for value in item:
+            if i == 0:
+                meet.update({'id': value})
+                id = value
+            if i == 1:
+                meet.update({'name': value})
+            if i == 2:
+                meet.update({'description': value})
+            if i == 3:
+                meet.update({'ownerid': value})
+                meet.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
+                meet.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
+                meet.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
+            if i == 4:
+                meet.update({'members_amount': value})
+            if i == 5:
+                meet.update({'start': str(value)[0:-9]})
+            if i == 6:
+                meet.update({'finish': str(value)[0:-9]})
+            if i == 7:
+                meet.update({'approved': int(value)})
+            if i == 8:
+                meet.update({'photo': str(value)})
+                meet.update({'ismember': ismember(id, _id_client)})
+                meet.update({'isowner': isowner(id, _id_client)})
+            i += 1
+        response.append(meet)
+    return response
 
 
 class TestConnection(Resource):
@@ -245,8 +293,6 @@ class AddMeet(Resource):
             if check_url(_description):
                 return {'failed': 'Описание не можем содержать ссылку'}
 
-
-
         try:
             cnx = get_cnx()
 
@@ -274,23 +320,6 @@ class GetMeets(Resource):
     def get(self):
         try:
 
-            def ismember(meet, id):
-                cnx = get_cnx()
-
-                cursor = cnx.cursor(buffered=True)
-                query = "select count(id) from meetings where id = %s and id in (select idmeeting from participation where idmember = %s);"
-                data = (meet, id)
-                cursor.execute(query, data)
-
-                for item in cursor:
-                    for value in item:
-                        if value > 0:
-                            return 1
-                        else:
-                            return 0
-
-                cnx.close()
-
             _id_client = AuthUser.check_sign(AuthUser, request)
             if _id_client == -100:
                 return {'failed': 403}
@@ -300,35 +329,8 @@ class GetMeets(Resource):
             cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where finish > current_date() and ismoderated = 1;"
 
-            response = []
             cursor.execute(query)
-            for item in cursor:
-                i = 0
-                meet = {}
-                for value in item:
-                    if i == 0:
-                        meet.update({'id': value})
-                        id = value
-                    if i == 1:
-                        meet.update({'name': value})
-                    if i == 2:
-                        meet.update({'description': value})
-                    if i == 3:
-                        meet.update({'ownerid': value})
-                        meet.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
-                        meet.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
-                        meet.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
-                    if i == 4:
-                        meet.update({'members_amount': value})
-                    if i == 5:
-                        meet.update({'start': str(value)[0:-9]})
-                    if i == 6:
-                        meet.update({'finish': str(value)[0:-9]})
-                    if i == 8:
-                        meet.update({'photo': str(value)})
-                        meet.update({'ismember': ismember(id, _id_client)})
-                    i += 1
-                response.append(meet)
+            response = prepare_meet(cursor, _id_client)
             cursor.close()
             cnx.close()
             return response
@@ -348,22 +350,6 @@ class GetMeet(Resource):
             parser.add_argument('meet', type=int)
             args = parser.parse_args()
             _meet = args['meet']
-            def ismember(meet, id):
-                cnx = get_cnx()
-
-                cursor = cnx.cursor(buffered=True)
-                query = "select count(id) from meetings where id = %s and id in (select idmeeting from participation where idmember = %s);"
-                data = (meet, id)
-                cursor.execute(query, data)
-
-                for item in cursor:
-                    for value in item:
-                        if value > 0:
-                            return 1
-                        else:
-                            return 0
-
-                cnx.close()
 
             _id_client = AuthUser.check_sign(AuthUser, request)
             if _id_client == -100:
@@ -374,36 +360,9 @@ class GetMeet(Resource):
             cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where id = %s and ismoderated = 1;"
 
-            response = []
             data = (_meet, )
             cursor.execute(query, data)
-            for item in cursor:
-                i = 0
-                meet = {}
-                for value in item:
-                    if i == 0:
-                        meet.update({'id': value})
-                        id = value
-                    if i == 1:
-                        meet.update({'name': value})
-                    if i == 2:
-                        meet.update({'description': value})
-                    if i == 3:
-                        meet.update({'ownerid': value})
-                        meet.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
-                        meet.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
-                        meet.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
-                    if i == 4:
-                        meet.update({'members_amount': value})
-                    if i == 5:
-                        meet.update({'start': str(value)[0:-9]})
-                    if i == 6:
-                        meet.update({'finish': str(value)[0:-9]})
-                    if i == 8:
-                        meet.update({'photo': str(value)})
-                        meet.update({'ismember': ismember(id, _id_client)})
-                    i += 1
-                response.append(meet)
+            response = prepare_meet(cursor, _id_client)
             cursor.close()
             cnx.close()
             return response
@@ -428,35 +387,8 @@ class GetUserMeets(Resource):
             cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where finish > current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s);"
             data = (_id_client,)
-            response = []
             cursor.execute(query, data)
-            for item in cursor:
-                i = 0
-                meet = {}
-                for value in item:
-                    if i == 0:
-                        meet.update({'id': value})
-                        id = value
-                    if i == 1:
-                        meet.update({'name': value})
-                    if i == 2:
-                        meet.update({'description': value})
-                    if i == 3:
-                        meet.update({'ownerid': value})
-                        meet.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
-                        meet.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
-                        meet.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
-                    if i == 4:
-                        meet.update({'members_amount': value})
-                    if i == 5:
-                        meet.update({'start': str(value)[0:-9]})
-                    if i == 6:
-                        meet.update({'finish': str(value)[0:-9]})
-                    if i == 8:
-                        meet.update({'photo': str(value)})
-                        meet.update({'ismember': ismember(id, _id_client)})
-                    i += 1
-                response.append(meet)
+            response = prepare_meet(cursor, _id_client)
             cursor.close()
             cnx.close()
             return response
@@ -478,42 +410,15 @@ class GetOwneredMeets(Resource):
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where ownerid = %s;);"
-            data = (_id_client,)
-            response = []
+            query = "select * from meetings where ownerid = %s;"
+            data = ( _id_client, )
             cursor.execute(query, data)
-            for item in cursor:
-                i = 0
-                meet = {}
-                for value in item:
-                    if i == 0:
-                        meet.update({'id': value})
-                        id = value
-                    if i == 1:
-                        meet.update({'name': value})
-                    if i == 2:
-                        meet.update({'description': value})
-                    if i == 3:
-                        meet.update({'ownerid': value})
-                        meet.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
-                        meet.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
-                        meet.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
-                    if i == 4:
-                        meet.update({'members_amount': value})
-                    if i == 5:
-                        meet.update({'start': str(value)[0:-9]})
-                    if i == 6:
-                        meet.update({'finish': str(value)[0:-9]})
-                    if i == 8:
-                        meet.update({'photo': str(value)})
-                        meet.update({'ismember': ismember(id, _id_client)})
-                        meet.update({'isowner': True})
-                    i += 1
-                response.append(meet)
+            response = prepare_meet(cursor, _id_client)
             cursor.close()
             cnx.close()
             return response
         except BaseException as e:
+            print(e)
             cursor.close()
             cnx.close()
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
@@ -556,6 +461,8 @@ class GetExpiredUserMeets(Resource):
                         meet.update({'start': str(value)[0:-9]})
                     if i == 6:
                         meet.update({'finish': str(value)[0:-9]})
+                    if i == 7:
+                        meet.update({'approved': int(value)})
                     if i == 8:
                         meet.update({'photo': str(value)})
                         meet.update({'isexpired': True})
