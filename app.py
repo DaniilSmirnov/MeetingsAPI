@@ -89,6 +89,22 @@ def isowner(meet, id):
                 return False
 
 
+def isexpired(meet):
+    cnx = get_cnx()
+
+    cursor = cnx.cursor(buffered=True)
+    query = "select count(id) from meetings where id = %s and current_date > finish;"
+    data = (meet, )
+    cursor.execute(query, data)
+
+    for item in cursor:
+        for value in item:
+            if value > 0:
+                return True
+            else:
+                return False
+
+
 def prepare_meet(cursor, _id_client):
     response = []
     for item in cursor:
@@ -119,9 +135,56 @@ def prepare_meet(cursor, _id_client):
                 meet.update({'photo': str(value)})
                 meet.update({'ismember': ismember(id, _id_client)})
                 meet.update({'isowner': isowner(id, _id_client)})
+                meet.update({'isexpired': isexpired(id)})
             i += 1
         response.append(meet)
     return response
+
+
+def isliked(id, comment):
+    cnx = get_cnx()
+    cursor = cnx.cursor()
+    query = "select count(idratings) from ratings where iduser = %s and idcomment = %s;"
+    data = (id, comment)
+    cursor.execute(query, data)
+    for item in cursor:
+        for value in item:
+            if value == 1:
+                return True
+            else:
+                return False
+            break
+        break
+
+
+def get_owner_data(id):
+    cnx = get_cnx()
+    cursor = cnx.cursor()
+    query = "select name from members where idmembers = %s;"
+    data = (id,)
+    cursor.execute(query, data)
+    for item in cursor:
+        for value in item:
+            cnx.close()
+            name = value
+
+    query = "select surname from members where idmembers = %s;"
+    data = (id,)
+    cursor.execute(query, data)
+    for item in cursor:
+        for value in item:
+            cnx.close()
+            surname = value
+
+    query = "select photo from members where idmembers = %s;"
+    data = (id,)
+    cursor.execute(query, data)
+    for item in cursor:
+        for value in item:
+            cnx.close()
+            photo = value
+
+    return id, name, surname, photo
 
 
 class TestConnection(Resource):
@@ -242,14 +305,29 @@ class IsFirst(Resource):
 
             for item in cursor:
                 for value in item:
-                    if value == 1:
-                        return False
+                    data = get_user_data(_id)
+                    _name = data[0].get('first_name')
+                    _surname = data[0].get('last_name')
+                    _photo = data[0].get('photo_100')
                     if value == 0:
+                        query = "insert into members values(%s, default, %s, %s, %s)"
+                        data = (_id, _name, _surname, _photo)
+                        cursor.execute(query, data)
+                        cnx.commit()
+                        cnx.close()
                         return True
+                    if value == 1:
+                        query = "update members set name = %s, surname = %s, photo = %s where idmembers = %s;"
+                        data = (_name, _surname, _photo, _id)
+                        cursor.execute(query, data)
+                        cnx.commit()
+                        cnx.close()
+                        return False
 
             cnx.close()
 
         except BaseException as e:
+            print(e)
             return {'failed': 'error'}
 
 
@@ -438,36 +516,8 @@ class GetExpiredUserMeets(Resource):
             cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where finish < current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s) order by members_amount asc;"
             data = (_id_client,)
-            response = []
             cursor.execute(query, data)
-            for item in cursor:
-                i = 0
-                meet = {}
-                for value in item:
-                    if i == 0:
-                        meet.update({'id': value})
-                    if i == 1:
-                        meet.update({'name': value})
-                    if i == 2:
-                        meet.update({'description': value})
-                    if i == 3:
-                        meet.update({'ownerid': value})
-                        meet.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
-                        meet.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
-                        meet.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
-                    if i == 4:
-                        meet.update({'members_amount': value})
-                    if i == 5:
-                        meet.update({'start': str(value)[0:-9]})
-                    if i == 6:
-                        meet.update({'finish': str(value)[0:-9]})
-                    if i == 7:
-                        meet.update({'approved': int(value)})
-                    if i == 8:
-                        meet.update({'photo': str(value)})
-                        meet.update({'isexpired': True})
-                    i += 1
-                response.append(meet)
+            response = prepare_meet(cursor, _id_client)
             cursor.close()
             cnx.close()
             return response
@@ -709,6 +759,7 @@ class GetMeetComments(Resource):
             for value in item:
                 if i == 0:
                     comment.update({'id': value})
+                    id = value
                 if i == 1:
                     comment.update({'comment': value})
                 if i == 2:
@@ -720,12 +771,60 @@ class GetMeetComments(Resource):
                     comment.update({'meetingid': value})
                 if i == 4:
                     comment.update({'rating': value})
+                    comment.update({'isliked': isliked(_id_client, id)})
                 i += 1
             response.append(comment)
 
         cursor.close()
         cnx.close()
         return response
+
+
+class RateComment(Resource):
+    decorators = [limiter.limit("1 per second")]
+
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('comment', type=int)
+        parser.add_argument('act', type=int)
+        args = parser.parse_args()
+
+        cnx = get_cnx()
+
+        cursor = cnx.cursor(buffered=True)
+
+        _comment = args['comment']
+        _act = args['act']
+
+        _id_client = AuthUser.check_sign(AuthUser, request)
+        if _id_client == -100:
+            return {'failed': 403}
+
+        query = "select count(idratings) from ratings where iduser = %s and idcomment = %s;"
+        data = (_id_client, _comment)
+        cursor.execute(query, data)
+        for item in cursor:
+            for value in item:
+                if value == 1:
+                    if _act == 0:
+                        query = "delete from ratings where iduser = %s and idcomment = %s;"
+                        cursor.execute(query, data)
+                        query = "update comments set rating = rating - 1 where idcomments = %s;"
+                        data = (_comment,)
+                        cursor.execute(query, data)
+                        cnx.commit()
+                        return {'status': 'already liked'}
+                if value == 0:
+                    if _act == 1:
+                        query = "update comments set rating = rating + 1 where idcomments = %s;"
+                        data = (_comment,)
+                        cursor.execute(query, data)
+                        query = "insert into ratings values (default, %s, %s);"
+                        data = (_id_client, _comment)
+                        cursor.execute(query, data)
+                        cnx.commit()
+
+                        return {'status': 'success'}
 
 
 class RemoveComment(Resource):
@@ -763,7 +862,7 @@ class RemoveComment(Resource):
 
         cursor.close()
         cnx.close()
-        return {'success': True}
+        return {'status': True}
 
 
 class ApproveMeet(Resource):
@@ -915,36 +1014,8 @@ class GetAllMeets(Resource):
 
                 cursor = cnx.cursor(buffered=True)
                 query = "select * from meetings;"
-
-                response = []
                 cursor.execute(query)
-                for item in cursor:
-                    i = 0
-                    meet = {}
-                    for value in item:
-                        if i == 0:
-                            meet.update({'id': value})
-                        if i == 1:
-                            meet.update({'name': value})
-                        if i == 2:
-                            meet.update({'description': value})
-                        if i == 3:
-                            meet.update({'ownerid': value})
-                            meet.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
-                            meet.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
-                            meet.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
-                        if i == 4:
-                            meet.update({'members_amount': value})
-                        if i == 5:
-                            meet.update({'start': str(value)[0:-9]})
-                        if i == 6:
-                            meet.update({'finish': str(value)[0:-9]})
-                        if i == 7:
-                            meet.update({'approved': int(value)})
-                        if i == 8:
-                            meet.update({'photo': str(value)})
-                        i += 1
-                    response.append(meet)
+                response = prepare_meet(cursor, _id)
 
                 cursor.close()
                 cnx.close()
@@ -1138,6 +1209,7 @@ api.add_resource(GetMeet, '/GetMeet')
 api.add_resource(GetMeetComments, '/GetMeetComments')
 api.add_resource(AddComment, '/AddComment')
 api.add_resource(RemoveComment, '/RemoveComment')
+api.add_resource(RateComment, '/RateComment')
 
 api.add_resource(ApproveMeet, '/admin/Approve')
 api.add_resource(DeApproveMeet, '/admin/DeApprove')
