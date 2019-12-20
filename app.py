@@ -327,7 +327,7 @@ class GetMeets(Resource):
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where finish > current_date() and ismoderated = 1;"
+            query = "select * from meetings where finish > current_date() and ismoderated = 1 order by members_amount asc;"
 
             cursor.execute(query)
             response = prepare_meet(cursor, _id_client)
@@ -360,7 +360,7 @@ class GetMeet(Resource):
             cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where id = %s and ismoderated = 1;"
 
-            data = (_meet, )
+            data = (_meet,)
             cursor.execute(query, data)
             response = prepare_meet(cursor, _id_client)
             cursor.close()
@@ -385,7 +385,7 @@ class GetUserMeets(Resource):
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where finish > current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s);"
+            query = "select * from meetings where finish > current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s) order by members_amount asc;"
             data = (_id_client,)
             cursor.execute(query, data)
             response = prepare_meet(cursor, _id_client)
@@ -411,7 +411,7 @@ class GetOwneredMeets(Resource):
 
             cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where ownerid = %s;"
-            data = ( _id_client, )
+            data = (_id_client,)
             cursor.execute(query, data)
             response = prepare_meet(cursor, _id_client)
             cursor.close()
@@ -436,7 +436,7 @@ class GetExpiredUserMeets(Resource):
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where finish < current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s);"
+            query = "select * from meetings where finish < current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s) order by members_amount asc;"
             data = (_id_client,)
             response = []
             cursor.execute(query, data)
@@ -655,7 +655,7 @@ class AddComment(Resource):
             return {'failed': 'Некорректный текст комментария'}
         if check_url(_comment):
             return {'failed': 'Нельзя отправлять ссылки в комментарии'}
-        if (len(_comment) < 4) and (_comment[0] == " " or _comment[len(_comment)-1] == " "):
+        if (len(_comment) < 4) and (_comment[0] == " " or _comment[len(_comment) - 1] == " "):
             return {'failed': 'Вам не кажется, что комментарий слишком короткий?'}
 
         _id_client = AuthUser.check_sign(AuthUser, request)
@@ -670,7 +670,7 @@ class AddComment(Resource):
                 if value < 1:
                     return {'failed': 'Meet is not exist'}
 
-        query = "insert into comments values (default, %s, %s, %s);"
+        query = "insert into comments values (default, %s, %s, %s, default);"
         data = (_comment, _id_client, _meet)
         cursor.execute(query, data)
         cnx.commit()
@@ -718,7 +718,8 @@ class GetMeetComments(Resource):
                     comment.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
                 if i == 3:
                     comment.update({'meetingid': value})
-
+                if i == 4:
+                    comment.update({'rating': value})
                 i += 1
             response.append(comment)
 
@@ -1032,7 +1033,6 @@ class GeoPosition(Resource):
 
             _lat = args['lat']
             _lon = args['long']
-
 
             _id = AuthUser.check_sign(AuthUser, request)
             if _id == -100:
