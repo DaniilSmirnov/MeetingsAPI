@@ -363,8 +363,7 @@ class AddMeet(Resource):
                 return {'failed': 'Некорректное описание петиции'}
             if len(_start) == 0 or _start.isspace() or _start == 'undefined:00' or _start == '0000-00-00 00:00:00:00':
                 return {'failed': 'Некорректная дата начала петиции'}
-            if len(_finish) == 0 or _finish.isspace() or str(
-                    _finish) == 'undefined:00' or _finish == '0000-00-00 00:00:00:00':
+            if len(_finish) == 0 or _finish.isspace() or str(_finish) == 'undefined:00' or _finish == '0000-00-00 00:00:00:00':
                 return {'failed': 'Некорректная дата окончания петиции'}
             if len(_photo) == 0 or _photo.isspace() or _photo.isdigit():
                 return {'failed': 'Некорректная обложка петиции'}
@@ -800,6 +799,13 @@ class RateComment(Resource):
         if _id_client == -100:
             return {'failed': 403}
 
+        query = "select count(idcomments) from comments where idcomments = %s;"
+        data = (_comment,)
+        cursor.execute(query, data)
+        for item in cursor:
+            for value in item:
+                if value < 1:
+                    return {'failed': 'Comment is not exist'}
         query = "select count(idratings) from ratings where iduser = %s and idcomment = %s;"
         data = (_id_client, _comment)
         cursor.execute(query, data)
@@ -823,7 +829,6 @@ class RateComment(Resource):
                         data = (_id_client, _comment)
                         cursor.execute(query, data)
                         cnx.commit()
-
                         return {'status': 'success'}
 
 
@@ -833,14 +838,11 @@ class RemoveComment(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('comment', type=int)
-
         args = parser.parse_args()
+        _comment = args['comment']
 
         cnx = get_cnx()
-
         cursor = cnx.cursor(buffered=True)
-
-        _comment = args['comment']
 
         _id = AuthUser.check_sign(AuthUser, request)
         if _id == -100:
@@ -1130,6 +1132,10 @@ class GeoPosition(Resource):
 
 class getStory(Resource):
     def get(self):
+        _id = AuthUser.check_sign(AuthUser, request)
+        if _id == -100:
+            return {'failed': 403}
+
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=str)
         args = parser.parse_args()
@@ -1189,6 +1195,54 @@ class UpdateGroup(Resource):
 class GetByGroup(Resource):
     pass
 
+
+class getWidget(Resource):
+    def get(self):
+        try:
+            parser = reqparse.RequestParser()
+            parser.add_argument('meet', type=int)
+            args = parser.parse_args()
+            _meet = args['meet']
+
+            _id_client = AuthUser.check_sign(AuthUser, request)
+            if _id_client == -100:
+                return {'failed': 403}
+
+            cnx = get_cnx()
+
+            cursor = cnx.cursor(buffered=True)
+            query = "select * from meetings where id = %s and ismoderated = 1;"
+
+            data = (_meet,)
+            cursor.execute(query, data)
+            i = 0
+            meet = {}
+            response = {}
+            rows = []
+            for item in cursor:
+                for value in item:
+                    if i == 0:
+                        meet.update({'id': value})
+                    if i == 1:
+                        meet.update({'title': value})
+                    if i == 2:
+                        meet.update({'descr': value})
+                    if i == 3:
+                        meet.update({'button': "Открыть"})
+                    if i == 8:
+                        meet.update({'cover_id': str(value)})
+                    i += 1
+                rows.append(meet)
+            response.update({"title": 'Петиции'})
+            response.update({'rows': rows})
+
+            cnx.close()
+            return response
+        except BaseException as e:
+            cursor.close()
+            cnx.close()
+            print(str(e))
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
 
 api.add_resource(TestConnection, '/TestConnection')
 
