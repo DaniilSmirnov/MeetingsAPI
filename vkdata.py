@@ -20,6 +20,3 @@ def notify(id, name):
 def get_group_data(id):
     response = vk.groups.getById(group_id=id, fields='photo_100', lang='ru')
     print(response)
-
-response = vk.secure.setCounter(user_id=87478742, counter=-9)
-print(response)

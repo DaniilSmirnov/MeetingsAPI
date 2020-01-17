@@ -61,7 +61,8 @@ def ismember(meet, id):
     cnx = get_cnx()
 
     cursor = cnx.cursor(buffered=True)
-    query = "select count(id) from meetings where id = %s and id in (select idmeeting from participation where idmember = %s);"
+    query = "select count(id) from meetings where id = %s and id in (select idmeeting from participation where " \
+            "idmember = %s); "
     data = (meet, id)
     cursor.execute(query, data)
 
@@ -153,38 +154,7 @@ def isliked(id, comment):
                 return True
             else:
                 return False
-            break
         break
-
-
-def get_owner_data(id):
-    cnx = get_cnx()
-    cursor = cnx.cursor()
-    query = "select name from members where idmembers = %s;"
-    data = (id,)
-    cursor.execute(query, data)
-    for item in cursor:
-        for value in item:
-            cnx.close()
-            name = value
-
-    query = "select surname from members where idmembers = %s;"
-    data = (id,)
-    cursor.execute(query, data)
-    for item in cursor:
-        for value in item:
-            cnx.close()
-            surname = value
-
-    query = "select photo from members where idmembers = %s;"
-    data = (id,)
-    cursor.execute(query, data)
-    for item in cursor:
-        for value in item:
-            cnx.close()
-            photo = value
-
-    return id, name, surname, photo
 
 
 class TestConnection(Resource):
