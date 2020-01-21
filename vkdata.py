@@ -19,4 +19,4 @@ def notify(id, name):
 
 def get_group_data(id):
     response = vk.groups.getById(group_id=id, fields='photo_100', lang='ru')
-    print(response)
+    return response

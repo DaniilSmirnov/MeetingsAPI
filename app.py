@@ -16,7 +16,7 @@ from haversine import haversine
 
 from demo import search
 from stories import prepare_storie
-from vkdata import notify, get_user_data
+from vkdata import notify, get_user_data, get_group_data
 
 app = Flask(__name__)
 
@@ -1125,16 +1125,23 @@ class getStory(Resource):
                 i += 1
 
 
-class CheckUser(Resource):
+class GetGroupInfo(Resource):
     def get(self):
         _id = AuthUser.check_sign(AuthUser, request)
         if _id == -100:
             return {'failed': 403}
 
         if AuthUser.check_vk_viewer_group_role(AuthUser, request):
-            return True
+            launch_params = request.referrer
+            print(request.referrer)
+            launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
+            group_id = launch_params.get('vk_group_id')
+            data = get_group_data(group_id)
+            _name = data[0].get('name')
+            _photo = data[0].get('photo_100')
+            return {'name': _name, 'photo': _photo}
         else:
-            return False
+            return False, 403
 
 
 class GetByGroup(Resource):
@@ -1195,7 +1202,7 @@ api.add_resource(TestConnection, '/TestConnection')
 api.add_resource(IsFirst, '/IsFirst')
 api.add_resource(UpdateUser, '/UpdateUser')
 api.add_resource(AddUser, '/AddUser')
-api.add_resource(CheckUser, '/CheckUser')
+api.add_resource(GetGroupInfo, '/GetGroupInfo')
 
 api.add_resource(GetMeets, '/GetMeets')
 api.add_resource(AddMeet, '/AddMeet')
