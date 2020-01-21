@@ -131,7 +131,10 @@ def prepare_meet(cursor, _id_client):
             if i == 6:
                 meet.update({'finish': str(value)[0:-9]})
             if i == 7:
-                meet.update({'approved': int(value)})
+                if value == 1:
+                    meet.update({'approved': True})
+                if value != 1:
+                    meet.update({'approved': False})
             if i == 8:
                 meet.update({'photo': str(value)})
                 meet.update({'ismember': ismember(id, _id_client)})
@@ -382,8 +385,6 @@ class GetMeets(Resource):
             cnx.close()
             return response
         except BaseException as e:
-            cursor.close()
-            cnx.close()
             print(str(e))
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
 
@@ -1214,6 +1215,7 @@ class getWidget(Resource):
             print(str(e))
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
 
+
 api.add_resource(TestConnection, '/TestConnection')
 
 api.add_resource(IsFirst, '/IsFirst')
@@ -1244,5 +1246,7 @@ api.add_resource(getStory, '/getStory')
 api.add_resource(GeoPosition, '/GeoPosition')
 
 if __name__ == '__main__':
-    context = ('/etc/ssl/vargasoff.ru.crt', '/etc/ssl/private.key')
-    app.run(host='0.0.0.0', port='8000', ssl_context=context)
+    #context = ('/etc/ssl/vargasoff.ru.crt', '/etc/ssl/private.key')
+    #app.run(host='0.0.0.0', port='8000', ssl_context=context)
+    app.run(host='0.0.0.0', port='8000')
+
