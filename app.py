@@ -204,8 +204,6 @@ class GetUser(Resource):
 
 
 class UpdateUser(Resource):
-    decorators = [limiter.limit("5 per second")]
-
     def post(self):
         _id_client = AuthUser.check_sign(AuthUser, request)
         if _id_client == -100:
@@ -230,8 +228,6 @@ class UpdateUser(Resource):
 
 
 class AddUser(Resource):
-    decorators = [limiter.limit("5 per second")]
-
     def post(self):
         try:
 
@@ -260,8 +256,6 @@ class AddUser(Resource):
 
 
 class IsFirst(Resource):
-    decorators = [limiter.limit("5 per second")]
-
     def get(self):
         try:
             _id = AuthUser.check_sign(AuthUser, request)
@@ -306,7 +300,6 @@ class IsFirst(Resource):
 
 class AddMeet(Resource):
     decorators = [limiter.limit("3 per day")]
-
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('name', type=str)
@@ -365,7 +358,6 @@ class AddMeet(Resource):
 
 
 class GetMeets(Resource):
-    decorators = [limiter.limit("5 per second")]
 
     def get(self):
         try:
@@ -596,9 +588,19 @@ class RemoveMeetMember(Resource):
 
 
 class AuthUser(Resource):
+    def check_vk_viewer_group_role(self, request):
+        launch_params = request.referrer
+        print(request.referrer)
+        launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
+        role = launch_params.get('vk_viewer_group_role')
+        if role == 'admin':
+            return True
+        else:
+            return False
+
     def check_sign(self, request):
+
         def is_valid(*, query: dict, secret: str) -> bool:
-            """Check VK Apps signature"""
             vk_subset = OrderedDict(sorted(x for x in query.items() if x[0][:3] == "vk_"))
             hash_code = b64encode(HMAC(secret.encode(), urlencode(vk_subset, doseq=True).encode(), sha256).digest())
             decoded_hash_code = hash_code.decode('utf-8')[:-1].replace('+', '-').replace('/', '_')
@@ -608,22 +610,13 @@ class AuthUser(Resource):
                 return query.get("sign") == decoded_hash_code
 
         launch_params = request.referrer
+        print(request.referrer)
         launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
         if not is_valid(query=launch_params, secret="VUc7I09bHOUYWjfFhx20"):
             return -100
         else:
             return launch_params.get('vk_user_id')
-
-    def validate_user(self, id, request):
-        launch_params = request.referrer
-        # print(request.referrer)
-        launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
-
-        if not str(launch_params.get('vk_user_id')) == str(id):
-            return False
-        else:
-            return True
 
     def checkuser(self, id, request):
         launch_params = request.referrer
@@ -1132,35 +1125,16 @@ class getStory(Resource):
                 i += 1
 
 
-class AddGroup(Resource):
-    def post(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument('_id group', type=str)
-        args = parser.parse_args()
-
-        _id_group = args['id_group']
-
+class CheckUser(Resource):
+    def get(self):
         _id = AuthUser.check_sign(AuthUser, request)
         if _id == -100:
             return {'failed': 403}
 
-        if _id_group.isdigit() and int(_id_group) > 0:
-            return {'success', False}
-
-        # TODO проверка на то, что юзер реально с правами в группе
-
-        try:
-            _id_group = int(_id_group)
-        except BaseException:
-            pass
-
-        data = get_user_data(_id_group)
-        _name = data[0].get('name')
-        _photo = data[0].get('photo_100')
-
-
-class UpdateGroup(Resource):
-    pass
+        if AuthUser.check_vk_viewer_group_role(AuthUser, request):
+            return True
+        else:
+            return False
 
 
 class GetByGroup(Resource):
@@ -1221,6 +1195,7 @@ api.add_resource(TestConnection, '/TestConnection')
 api.add_resource(IsFirst, '/IsFirst')
 api.add_resource(UpdateUser, '/UpdateUser')
 api.add_resource(AddUser, '/AddUser')
+api.add_resource(CheckUser, '/CheckUser')
 
 api.add_resource(GetMeets, '/GetMeets')
 api.add_resource(AddMeet, '/AddMeet')
