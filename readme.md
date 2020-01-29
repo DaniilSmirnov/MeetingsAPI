@@ -6,10 +6,10 @@ version 1.7
 
 | Name | Method | Arguments | Description |
 | ---- | ------ | --------| ----------- |
-| TestConnection| GET |
-| IsFirst | GET |
+| TestConnection| GET | None |
+| IsFirst | GET | None |
 | GetGroupInfo | GET |
-| GetMeets | GET |
+| GetMeets | GET | None |
 | AddMeet | POST |
 | AddMeetMember | POST |
 | RemoveMeetMember | POST |
