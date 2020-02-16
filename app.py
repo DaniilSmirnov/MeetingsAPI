@@ -1,11 +1,3 @@
-from base64 import b64encode
-from collections import OrderedDict
-from hashlib import sha256
-from hmac import HMAC
-from urllib.parse import urlparse, parse_qsl, urlencode
-
-import mysql.connector
-import validators
 from flask import Flask
 from flask import request
 from flask_cors import CORS
@@ -14,9 +6,11 @@ from flask_limiter.util import get_remote_address
 from flask_restful import Resource, Api, reqparse
 from haversine import haversine
 
+from auth import *
 from demo import search
+from helpers import *
 from stories import prepare_storie
-from vkdata import notify, get_user_data, get_group_data
+from vkdata import notify
 
 app = Flask(__name__)
 
@@ -31,134 +25,6 @@ limiter = Limiter(
 )
 
 
-def check_url(url):
-    try:
-        if url.find(' ') == -1:
-            if url.find('http') == -1:
-                url = 'http://' + url
-            if validators.url(url):
-                return True
-        else:
-            url = url.split(' ')
-            for item in url:
-                if item.find('http') == -1:
-                    item = 'http://' + item
-                if validators.url(item):
-                    return True
-    except validators.ValidationFailure:
-        return False
-
-
-def get_cnx():
-    cnx = mysql.connector.connect(user='met', password='misha_benich228',
-                                  host='0.0.0.0',
-                                  database='meets')
-
-    return cnx
-
-
-def ismember(meet, id):
-    cnx = get_cnx()
-
-    cursor = cnx.cursor(buffered=True)
-    query = "select count(id) from meetings where id = %s and id in (select idmeeting from participation where " \
-            "idmember = %s); "
-    data = (meet, id)
-    cursor.execute(query, data)
-
-    for item in cursor:
-        for value in item:
-            return value > 0
-
-
-def isowner(meet, id):
-    cnx = get_cnx()
-
-    cursor = cnx.cursor(buffered=True)
-    query = "select count(id) from meetings where id = %s and ownerid = %s;"
-    data = (meet, id)
-    cursor.execute(query, data)
-
-    for item in cursor:
-        for value in item:
-            return value > 0
-
-
-def isexpired(meet):
-    cnx = get_cnx()
-
-    cursor = cnx.cursor(buffered=True)
-    query = "select count(id) from meetings where id = %s and current_date > finish;"
-    data = (meet,)
-    cursor.execute(query, data)
-
-    for item in cursor:
-        for value in item:
-            return value > 0
-
-
-def prepare_meet(cursor, _id_client):
-    response = []
-    for item in cursor:
-        i = 0
-        meet = {}
-        for value in item:
-            if i == 0:
-                meet.update({'id': value})
-                id = value
-            if i == 1:
-                meet.update({'name': value})
-            if i == 2:
-                meet.update({'description': value})
-            if i == 3:
-                meet.update({'ownerid': value})
-                if value > 0:
-                    data = get_user_data(value)
-                    _name = data[0].get('first_name')
-                    _surname = data[0].get('last_name')
-                    _photo = data[0].get('photo_100')
-                    meet.update({'owner_name': _name})
-                    meet.update({'owner_surname': _surname})
-                    meet.update({'owner_photo': _photo})
-                else:
-                    data = get_group_data(value * -1)
-                    _name = data[0].get('name')
-                    _photo = data[0].get('photo_100')
-                    meet.update({'owner_name': _name})
-                    meet.update({'owner_photo': _photo})
-
-            if i == 4:
-                meet.update({'members_amount': value})
-            if i == 5:
-                meet.update({'start': str(value)[0:-9]})
-            if i == 6:
-                meet.update({'finish': str(value)[0:-9]})
-            if i == 7:
-                if value == 1:
-                    meet.update({'approved': True})
-                if value != 1:
-                    meet.update({'approved': False})
-            if i == 8:
-                meet.update({'photo': str(value)})
-                meet.update({'ismember': ismember(id, _id_client)})
-                meet.update({'isowner': isowner(id, _id_client)})
-                meet.update({'isexpired': isexpired(id)})
-            i += 1
-        response.append(meet)
-    return response
-
-
-def isliked(id, comment):
-    cnx = get_cnx()
-    cursor = cnx.cursor()
-    query = "select count(idratings) from ratings where iduser = %s and idcomment = %s;"
-    data = (id, comment)
-    cursor.execute(query, data)
-    for item in cursor:
-        for value in item:
-            return value == 1
-
-
 class TestConnection(Resource):
     def get(self):
         cnx = get_cnx()
@@ -166,45 +32,9 @@ class TestConnection(Resource):
         return {'status': 'success'}
 
 
-class GetUser(Resource):
-
-    def get_owner_name(self, id):
-        cnx = get_cnx()
-        cursor = cnx.cursor()
-        query = "select name from members where idmembers = %s;"
-        data = (id,)
-        cursor.execute(query, data)
-        for item in cursor:
-            for value in item:
-                cnx.close()
-                return value
-
-    def get_owner_surname(self, id):
-        cnx = get_cnx()
-        cursor = cnx.cursor()
-        query = "select surname from members where idmembers = %s;"
-        data = (id,)
-        cursor.execute(query, data)
-        for item in cursor:
-            for value in item:
-                cnx.close()
-                return value
-
-    def get_owner_photo(self, id):
-        cnx = get_cnx()
-        cursor = cnx.cursor()
-        query = "select photo from members where idmembers = %s;"
-        data = (id,)
-        cursor.execute(query, data)
-        for item in cursor:
-            for value in item:
-                cnx.close()
-                return value
-
-
 class UpdateUser(Resource):
     def post(self):
-        _id_client = AuthUser.check_sign(AuthUser, request)
+        _id_client = check_sign(request)
         if _id_client == -100:
             return {'failed': 403}
 
@@ -230,7 +60,7 @@ class AddUser(Resource):
     def post(self):
         try:
 
-            _id_client = AuthUser.check_sign(AuthUser, request)
+            _id_client = check_sign(request)
             if _id_client == -100:
                 return {'failed': 403}
 
@@ -257,7 +87,7 @@ class AddUser(Resource):
 class IsFirst(Resource):
     def get(self):
         try:
-            _id = AuthUser.check_sign(AuthUser, request)
+            _id = check_sign(request)
             if _id == -100:
                 return {'failed': 403}
 
@@ -317,11 +147,11 @@ class AddMeet(Resource):
         _photo = args['photo']
         _is_group = args['isGroup']
 
-        _owner_id = AuthUser.check_sign(AuthUser, request)
+        _owner_id = check_sign(request)
         if _owner_id == -100:
             return {'failed': 403}
 
-        if AuthUser.checkuser(AuthUser, _owner_id, request):
+        if checkuser(_owner_id, request):
             pass
         else:
             if (len(_name) == 0) or _name.isspace() or _name.isdigit() or len(_name) > 45 or search(_name):
@@ -340,7 +170,7 @@ class AddMeet(Resource):
                 return {'failed': 'Описание не можем содержать ссылку'}
 
         if _is_group:
-            if AuthUser.check_vk_viewer_group_role(AuthUser, request):
+            if check_vk_viewer_group_role(request):
                 launch_params = request.referrer
                 launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
                 _owner_id = int(launch_params.get('vk_group_id')) * -1
@@ -362,7 +192,6 @@ class AddMeet(Resource):
         except BaseException as e:
             cursor.close()
             cnx.close()
-            print(str(e))
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
 
 
@@ -371,7 +200,7 @@ class GetMeets(Resource):
     def get(self):
         try:
 
-            _id_client = AuthUser.check_sign(AuthUser, request)
+            _id_client = check_sign(request)
             if _id_client == -100:
                 return {'failed': 403}
 
@@ -399,7 +228,7 @@ class GetMeet(Resource):
             args = parser.parse_args()
             _meet = args['meet']
 
-            _id_client = AuthUser.check_sign(AuthUser, request)
+            _id_client = check_sign(request)
             if _id_client == -100:
                 return {'failed': 403}
 
@@ -417,7 +246,6 @@ class GetMeet(Resource):
         except BaseException as e:
             cursor.close()
             cnx.close()
-            print(str(e))
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
@@ -426,7 +254,7 @@ class GetUserMeets(Resource):
 
     def get(self):
         try:
-            _id_client = AuthUser.check_sign(AuthUser, request)
+            _id_client = check_sign(request)
             if _id_client == -100:
                 return {'failed': 403}
 
@@ -451,7 +279,7 @@ class GetOwneredMeets(Resource):
 
     def get(self):
         try:
-            _id_client = AuthUser.check_sign(AuthUser, request)
+            _id_client = check_sign(request)
             if _id_client == -100:
                 return {'failed': 403}
 
@@ -476,7 +304,7 @@ class GetExpiredUserMeets(Resource):
 
     def get(self):
         try:
-            _id_client = AuthUser.check_sign(AuthUser, request)
+            _id_client = check_sign(request)
             if _id_client == -100:
                 return {'failed': 403}
 
@@ -506,7 +334,7 @@ class AddMeetMember(Resource):
 
         _meet = args['meet']
 
-        _id_client = AuthUser.check_sign(AuthUser, request)
+        _id_client = check_sign(request)
         if _id_client == -100:
             return {'failed': 403}
 
@@ -562,7 +390,7 @@ class RemoveMeetMember(Resource):
 
             _meet = args['meet']
 
-            _id_client = AuthUser.check_sign(AuthUser, request)
+            _id_client = check_sign(request)
             if _id_client == -100:
                 return {'failed': 403}
 
@@ -592,68 +420,6 @@ class RemoveMeetMember(Resource):
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
 
 
-class AuthUser(Resource):
-    def check_vk_viewer_group_role(self, request):
-        launch_params = request.referrer
-        print(request.referrer)
-        launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
-        role = launch_params.get('vk_viewer_group_role')
-        if role == 'admin':
-            return True
-        else:
-            return False
-
-    def check_sign(self, request):
-
-        def is_valid(*, query: dict, secret: str) -> bool:
-            vk_subset = OrderedDict(sorted(x for x in query.items() if x[0][:3] == "vk_"))
-            hash_code = b64encode(HMAC(secret.encode(), urlencode(vk_subset, doseq=True).encode(), sha256).digest())
-            decoded_hash_code = hash_code.decode('utf-8')[:-1].replace('+', '-').replace('/', '_')
-            try:
-                return query["sign"] == decoded_hash_code
-            except KeyError:
-                return query.get("sign") == decoded_hash_code
-
-        launch_params = request.referrer
-        # print(request.referrer)
-        # print(request.user_agent)
-        # print(request.remote_addr)
-
-        launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
-
-        if not is_valid(query=launch_params, secret="VUc7I09bHOUYWjfFhx20"):
-            return -100
-        else:
-            return launch_params.get('vk_user_id')
-
-    def checkuser(self, id, request):
-        launch_params = request.referrer
-        launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
-
-        if not str(launch_params.get('vk_user_id')) == str(id):
-            return {'failed': '403'}
-
-        cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                      host='0.0.0.0',
-                                      database='meets')
-
-        cursor = cnx.cursor(buffered=True)
-
-        query = "select rights_level from members where idmembers = %s;"
-        data = (id,)
-        cursor.execute(query, data)
-        for item in cursor:
-            for value in item:
-                if str(value) == "admin":
-                    cursor.close()
-                    cnx.close()
-                    return True
-                else:
-                    cursor.close()
-                    cnx.close()
-                    return False
-
-
 class AddComment(Resource):
     decorators = [limiter.limit("5 per minute")]
 
@@ -679,7 +445,7 @@ class AddComment(Resource):
         if (len(_comment) < 4) and (_comment[0] == " " or _comment[len(_comment) - 1] == " "):
             return {'failed': 'Вам не кажется, что комментарий слишком короткий?'}
 
-        _id_client = AuthUser.check_sign(AuthUser, request)
+        _id_client = check_sign(request)
         if _id_client == -100:
             return {'failed': 403}
 
@@ -715,7 +481,7 @@ class GetMeetComments(Resource):
 
         _meet = args['meet']
 
-        _id_client = AuthUser.check_sign(AuthUser, request)
+        _id_client = check_sign(request)
         if _id_client == -100:
             return {'failed': 403}
 
@@ -735,9 +501,9 @@ class GetMeetComments(Resource):
                     comment.update({'comment': value})
                 if i == 2:
                     comment.update({'ownerid': value})
-                    comment.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
-                    comment.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
-                    comment.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
+                    comment.update({'owner_name': get_owner_name(value)})
+                    comment.update({'owner_surname': get_owner_surname(value)})
+                    comment.update({'owner_photo': get_owner_photo(value)})
                 if i == 3:
                     comment.update({'meetingid': value})
                 if i == 4:
@@ -767,7 +533,7 @@ class RateComment(Resource):
         _comment = args['comment']
         _act = args['act']
 
-        _id_client = AuthUser.check_sign(AuthUser, request)
+        _id_client = check_sign(request)
         if _id_client == -100:
             return {'failed': 403}
 
@@ -816,7 +582,7 @@ class RemoveComment(Resource):
         cnx = get_cnx()
         cursor = cnx.cursor(buffered=True)
 
-        _id = AuthUser.check_sign(AuthUser, request)
+        _id = check_sign(request)
         if _id == -100:
             return {'failed': 403}
 
@@ -826,7 +592,7 @@ class RemoveComment(Resource):
         for item in cursor:
             for value in item:
                 if value < 1:
-                    if not AuthUser.checkuser(AuthUser, _id, request):
+                    if not checkuser(_id, request):
                         return {'failed': 'Comment doesnt exists'}
 
         query = "delete from comments where idcomments = %s"
@@ -848,12 +614,12 @@ class ApproveMeet(Resource):
 
         cursor = cnx.cursor(buffered=True)
 
-        _id = AuthUser.check_sign(AuthUser, request)
+        _id = check_sign(request)
         if _id == -100:
             return {'failed': 403}
 
         _meet = args['meet']
-        if AuthUser.checkuser(AuthUser, _id, request):
+        if checkuser(_id, request):
             query = "select ismoderated from meetings where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
@@ -908,11 +674,11 @@ class DeApproveMeet(Resource):
         cursor = cnx.cursor(buffered=True)
 
         _meet = args['meet']
-        _id = AuthUser.check_sign(AuthUser, request)
+        _id = check_sign(request)
         if _id == -100:
             return {'failed': 403}
 
-        if AuthUser.checkuser(AuthUser, _id, request):
+        if checkuser(_id, request):
             query = "select ismoderated from meetings where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
@@ -948,11 +714,11 @@ class DenyMeet(Resource):
         cursor = cnx.cursor(buffered=True)
 
         _meet = args['meet']
-        _id = AuthUser.check_sign(AuthUser, request)
+        _id = check_sign(request)
         if _id == -100:
             return {'failed': 403}
 
-        if AuthUser.checkuser(AuthUser, _id, request):
+        if checkuser(_id, request):
             query = "select isvisible from meetings where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
@@ -978,11 +744,11 @@ class GetAllMeets(Resource):
     def get(self):
         try:
 
-            _id = AuthUser.check_sign(AuthUser, request)
+            _id = check_sign(request)
             if _id == -100:
                 return {'failed': 403}
 
-            if AuthUser.checkuser(AuthUser, _id, request):
+            if checkuser(_id, request):
 
                 cnx = get_cnx()
 
@@ -1003,7 +769,7 @@ class GetAllMeets(Resource):
 
 class GeoPosition(Resource):
     def get(self):
-        _id = AuthUser.check_sign(AuthUser, request)
+        _id = check_sign(request)
         if _id == -100:
             return {'failed': 403}
 
@@ -1079,7 +845,7 @@ class GeoPosition(Resource):
             _lat = args['lat']
             _lon = args['long']
 
-            _id = AuthUser.check_sign(AuthUser, request)
+            _id = check_sign(request)
             if _id == -100:
                 return {'failed': 403}
 
@@ -1102,10 +868,9 @@ class GeoPosition(Resource):
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
-
 class getStory(Resource):
     def get(self):
-        _id = AuthUser.check_sign(AuthUser, request)
+        _id = check_sign(request)
         if _id == -100:
             return {'failed': 403}
 
@@ -1136,11 +901,11 @@ class getStory(Resource):
 
 class GetGroupInfo(Resource):
     def get(self):
-        _id = AuthUser.check_sign(AuthUser, request)
+        _id = check_sign(request)
         if _id == -100:
             return {'failed': 403}
 
-        if AuthUser.check_vk_viewer_group_role(AuthUser, request):
+        if check_vk_viewer_group_role(request):
             launch_params = request.referrer
             print(request.referrer)
             launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
@@ -1165,7 +930,7 @@ class getWidget(Resource):
             args = parser.parse_args()
             _meet = args['meet']
 
-            _id_client = AuthUser.check_sign(AuthUser, request)
+            _id_client = check_sign(request)
             if _id_client == -100:
                 return {'failed': 403}
 
