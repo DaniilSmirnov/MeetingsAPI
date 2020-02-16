@@ -7,7 +7,7 @@ from flask_restful import Resource, Api, reqparse
 from haversine import haversine
 
 from auth import *
-from demo import search
+from recognize import search
 from helpers import *
 from stories import prepare_storie
 from vkdata import notify
