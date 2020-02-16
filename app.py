@@ -121,9 +121,21 @@ def prepare_meet(cursor, _id_client):
                 meet.update({'description': value})
             if i == 3:
                 meet.update({'ownerid': value})
-                meet.update({'owner_name': GetUser.get_owner_name(GetUser, value)})
-                meet.update({'owner_surname': GetUser.get_owner_surname(GetUser, value)})
-                meet.update({'owner_photo': GetUser.get_owner_photo(GetUser, value)})
+                if value > 0:
+                    data = get_user_data(value)
+                    _name = data[0].get('first_name')
+                    _surname = data[0].get('last_name')
+                    _photo = data[0].get('photo_100')
+                    meet.update({'owner_name': _name})
+                    meet.update({'owner_surname': _surname})
+                    meet.update({'owner_photo': _photo})
+                else:
+                    data = get_group_data(value * -1)
+                    _name = data[0].get('name')
+                    _photo = data[0].get('photo_100')
+                    meet.update({'owner_name': _name})
+                    meet.update({'owner_photo': _photo})
+
             if i == 4:
                 meet.update({'members_amount': value})
             if i == 5:
@@ -307,6 +319,7 @@ class AddMeet(Resource):
         parser.add_argument('start', type=str)
         parser.add_argument('finish', type=str)
         parser.add_argument('photo', type=str)
+        parser.add_argument('isGroup', type=bool)
         args = parser.parse_args()
 
         _name = args['name']
@@ -314,6 +327,7 @@ class AddMeet(Resource):
         _start = args['start']
         _finish = args['finish']
         _photo = args['photo']
+        _is_group = args['isGroup']
 
         _owner_id = AuthUser.check_sign(AuthUser, request)
         if _owner_id == -100:
@@ -335,6 +349,12 @@ class AddMeet(Resource):
                 return {'failed': 'Некорректная обложка петиции'}
             if check_url(_description):
                 return {'failed': 'Описание не можем содержать ссылку'}
+
+        if _is_group:
+            if AuthUser.check_vk_viewer_group_role(AuthUser, request):
+                launch_params = request.referrer
+                launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
+                _owner_id = int(launch_params.get('vk_group_id')) * -1
 
         try:
             cnx = get_cnx()
@@ -610,7 +630,10 @@ class AuthUser(Resource):
                 return query.get("sign") == decoded_hash_code
 
         launch_params = request.referrer
-        print(request.referrer)
+        #print(request.referrer)
+        #print(request.user_agent)
+        #print(request.remote_addr)
+        
         launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
         if not is_valid(query=launch_params, secret="VUc7I09bHOUYWjfFhx20"):
@@ -1139,7 +1162,7 @@ class GetGroupInfo(Resource):
             data = get_group_data(group_id)
             _name = data[0].get('name')
             _photo = data[0].get('photo_100')
-            return {'name': _name, 'photo': _photo}
+            return {'id': group_id, 'name': _name, 'photo': _photo}
         else:
             return False, 403
 
