@@ -50,7 +50,7 @@ def check_url(url):
 
 
 def get_cnx():
-    cnx = mysql.connector.connect(user='root', password='misha_benich228',
+    cnx = mysql.connector.connect(user='met', password='misha_benich228',
                                   host='0.0.0.0',
                                   database='meets')
 
@@ -68,10 +68,7 @@ def ismember(meet, id):
 
     for item in cursor:
         for value in item:
-            if value > 0:
-                return True
-            else:
-                return False
+            return value > 0
 
 
 def isowner(meet, id):
@@ -84,10 +81,7 @@ def isowner(meet, id):
 
     for item in cursor:
         for value in item:
-            if value > 0:
-                return True
-            else:
-                return False
+            return value > 0
 
 
 def isexpired(meet):
@@ -95,15 +89,12 @@ def isexpired(meet):
 
     cursor = cnx.cursor(buffered=True)
     query = "select count(id) from meetings where id = %s and current_date > finish;"
-    data = (meet, )
+    data = (meet,)
     cursor.execute(query, data)
 
     for item in cursor:
         for value in item:
-            if value > 0:
-                return True
-            else:
-                return False
+            return value > 0
 
 
 def prepare_meet(cursor, _id_client):
@@ -165,11 +156,7 @@ def isliked(id, comment):
     cursor.execute(query, data)
     for item in cursor:
         for value in item:
-            if value == 1:
-                return True
-            else:
-                return False
-        break
+            return value == 1
 
 
 class TestConnection(Resource):
@@ -312,6 +299,7 @@ class IsFirst(Resource):
 
 class AddMeet(Resource):
     decorators = [limiter.limit("3 per day")]
+
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('name', type=str)
@@ -343,7 +331,8 @@ class AddMeet(Resource):
                 return {'failed': 'Некорректное описание петиции'}
             if len(_start) == 0 or _start.isspace() or _start == 'undefined:00' or _start == '0000-00-00 00:00:00:00':
                 return {'failed': 'Некорректная дата начала петиции'}
-            if len(_finish) == 0 or _finish.isspace() or str(_finish) == 'undefined:00' or _finish == '0000-00-00 00:00:00:00':
+            if len(_finish) == 0 or _finish.isspace() or str(
+                    _finish) == 'undefined:00' or _finish == '0000-00-00 00:00:00:00':
                 return {'failed': 'Некорректная дата окончания петиции'}
             if len(_photo) == 0 or _photo.isspace() or _photo.isdigit():
                 return {'failed': 'Некорректная обложка петиции'}
@@ -397,8 +386,7 @@ class GetMeets(Resource):
             cnx.close()
             return response
         except BaseException as e:
-            print(str(e))
-            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
 class GetMeet(Resource):
@@ -430,7 +418,7 @@ class GetMeet(Resource):
             cursor.close()
             cnx.close()
             print(str(e))
-            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
 class GetUserMeets(Resource):
@@ -455,7 +443,7 @@ class GetUserMeets(Resource):
         except BaseException as e:
             cursor.close()
             cnx.close()
-            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
 class GetOwneredMeets(Resource):
@@ -478,10 +466,9 @@ class GetOwneredMeets(Resource):
             cnx.close()
             return response
         except BaseException as e:
-            print(e)
             cursor.close()
             cnx.close()
-            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
 class GetExpiredUserMeets(Resource):
@@ -506,7 +493,7 @@ class GetExpiredUserMeets(Resource):
         except BaseException as e:
             cursor.close()
             cnx.close()
-            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
 class AddMeetMember(Resource):
@@ -558,9 +545,7 @@ class AddMeetMember(Resource):
             return {'success': True}
 
         except BaseException as e:
-            cursor.close()
-            cnx.close()
-            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
 class RemoveMeetMember(Resource):
@@ -630,10 +615,10 @@ class AuthUser(Resource):
                 return query.get("sign") == decoded_hash_code
 
         launch_params = request.referrer
-        #print(request.referrer)
-        #print(request.user_agent)
-        #print(request.remote_addr)
-        
+        # print(request.referrer)
+        # print(request.user_agent)
+        # print(request.remote_addr)
+
         launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
         if not is_valid(query=launch_params, secret="VUc7I09bHOUYWjfFhx20"):
@@ -1013,7 +998,7 @@ class GetAllMeets(Resource):
 
                 return {'success': False}
         except BaseException as e:
-            return str(e)
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
 class GeoPosition(Resource):
@@ -1113,8 +1098,9 @@ class GeoPosition(Resource):
             cnx.commit()
             cnx.close()
             return {'status': 'success'}
-        except BaseException:
-            return {'status': 'failed'}
+        except BaseException as e:
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
+
 
 
 class getStory(Resource):
@@ -1216,8 +1202,7 @@ class getWidget(Resource):
         except BaseException as e:
             cursor.close()
             cnx.close()
-            print(str(e))
-            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
 api.add_resource(TestConnection, '/TestConnection')
@@ -1251,7 +1236,6 @@ api.add_resource(getStory, '/getStory')
 api.add_resource(GeoPosition, '/GeoPosition')
 
 if __name__ == '__main__':
-    #context = ('/etc/ssl/vargasoff.ru.crt', '/etc/ssl/private.key')
-    #app.run(host='0.0.0.0', port='8000', ssl_context=context)
+    # context = ('/etc/ssl/vargasoff.ru.crt', '/etc/ssl/private.key')
+    # app.run(host='0.0.0.0', port='8000', ssl_context=context)
     app.run(host='0.0.0.0', port='8000')
-
