@@ -190,9 +190,7 @@ class AddMeet(Resource):
             return {'success': 'Ваша петиция отправлена на модерацию, обычно это занимает до трех часов'}
 
         except BaseException as e:
-            cursor.close()
-            cnx.close()
-            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
 class GetMeets(Resource):
@@ -244,8 +242,6 @@ class GetMeet(Resource):
             cnx.close()
             return response
         except BaseException as e:
-            cursor.close()
-            cnx.close()
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
@@ -294,8 +290,6 @@ class GetOwneredMeets(Resource):
             cnx.close()
             return response
         except BaseException as e:
-            cursor.close()
-            cnx.close()
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
@@ -319,8 +313,6 @@ class GetExpiredUserMeets(Resource):
             cnx.close()
             return response
         except BaseException as e:
-            cursor.close()
-            cnx.close()
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
@@ -544,6 +536,7 @@ class RateComment(Resource):
             for value in item:
                 if value < 1:
                     return {'failed': 'Comment is not exist'}
+
         query = "select count(idratings) from ratings where iduser = %s and idcomment = %s;"
         data = (_id_client, _comment)
         cursor.execute(query, data)
@@ -560,6 +553,8 @@ class RateComment(Resource):
                         return {'status': 'already liked'}
                 if value == 0:
                     if _act == 1:
+                        query = "delete from ratings where iduser = %s and idcomment = %s;"
+                        cursor.execute(query, data)
                         query = "update comments set rating = rating + 1 where idcomments = %s;"
                         data = (_comment,)
                         cursor.execute(query, data)
