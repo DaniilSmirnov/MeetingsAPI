@@ -60,8 +60,8 @@ class IsFirst(Resource):
 
             cnx.close()
 
-        except BaseException as e:
-            return {'failed': 'error'}
+        except BaseException:
+            return {'success': False}
 
 
 class AddMeet(Resource):
