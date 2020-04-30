@@ -808,9 +808,7 @@ class GetGroupInfo(Resource):
             launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
             group_id = launch_params.get('vk_group_id')
             data = get_group_data(group_id)
-            _name = data[0].get('name')
-            _photo = data[0].get('photo_100')
-            return {'id': group_id, 'name': _name, 'photo': _photo}
+            return {'id': group_id, 'name': data[0].get('name'), 'photo': data[0].get('photo_100')}
         else:
             return False, 403
 

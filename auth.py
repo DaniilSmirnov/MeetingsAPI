@@ -29,10 +29,10 @@ def check_sign(request):
 
     launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
-    if not is_valid(query=launch_params, secret="VUc7I09bHOUYWjfFhx20"):
-        return -100
-    else:
+    if is_valid(query=launch_params, secret="VUc7I09bHOUYWjfFhx20"):
         return launch_params.get('vk_user_id')
+    else:
+        return - 100
 
 
 def checkuser(id, request):
