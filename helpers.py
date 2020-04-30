@@ -130,38 +130,3 @@ def isliked(id, comment):
         for value in item:
             return value == 1
 
-
-def get_owner_name(id):
-    cnx = get_cnx()
-    cursor = cnx.cursor()
-    query = "select name from members where idmembers = %s;"
-    data = (id,)
-    cursor.execute(query, data)
-    for item in cursor:
-        for value in item:
-            cnx.close()
-            return value
-
-
-def get_owner_surname(id):
-    cnx = get_cnx()
-    cursor = cnx.cursor()
-    query = "select surname from members where idmembers = %s;"
-    data = (id,)
-    cursor.execute(query, data)
-    for item in cursor:
-        for value in item:
-            cnx.close()
-            return value
-
-
-def get_owner_photo(id):
-    cnx = get_cnx()
-    cursor = cnx.cursor()
-    query = "select photo from members where idmembers = %s;"
-    data = (id,)
-    cursor.execute(query, data)
-    for item in cursor:
-        for value in item:
-            cnx.close()
-            return value

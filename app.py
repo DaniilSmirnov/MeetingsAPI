@@ -156,8 +156,6 @@ class GetMeets(Resource):
 
 
 class GetMeet(Resource):
-    decorators = [limiter.limit("5 per second")]
-
     def get(self):
         try:
             parser = reqparse.RequestParser()
@@ -185,8 +183,6 @@ class GetMeet(Resource):
 
 
 class GetUserMeets(Resource):
-    decorators = [limiter.limit("5 per second")]
-
     def get(self):
         try:
             _id_client = check_sign(request)
@@ -210,8 +206,6 @@ class GetUserMeets(Resource):
 
 
 class GetOwneredMeets(Resource):
-    decorators = [limiter.limit("5 per second")]
-
     def get(self):
         try:
             _id_client = check_sign(request)
@@ -233,8 +227,6 @@ class GetOwneredMeets(Resource):
 
 
 class GetExpiredUserMeets(Resource):
-    decorators = [limiter.limit("5 per second")]
-
     def get(self):
         try:
             _id_client = check_sign(request)
@@ -256,8 +248,6 @@ class GetExpiredUserMeets(Resource):
 
 
 class AddMeetMember(Resource):
-    decorators = [limiter.limit("5 per second")]
-
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
@@ -308,8 +298,6 @@ class AddMeetMember(Resource):
 
 
 class RemoveMeetMember(Resource):
-    decorators = [limiter.limit("5 per second")]
-
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
@@ -352,8 +340,6 @@ class RemoveMeetMember(Resource):
 
 
 class AddComment(Resource):
-    decorators = [limiter.limit("5 per minute")]
-
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
@@ -399,8 +385,6 @@ class AddComment(Resource):
 
 
 class GetMeetComments(Resource):
-    decorators = [limiter.limit("5 per second")]
-
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
@@ -449,8 +433,6 @@ class GetMeetComments(Resource):
 
 
 class RateComment(Resource):
-    decorators = [limiter.limit("1 per second")]
-
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('comment', type=int)
@@ -505,8 +487,6 @@ class RateComment(Resource):
 
 
 class RemoveComment(Resource):
-    decorators = [limiter.limit("5 per second")]
-
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('comment', type=int)
