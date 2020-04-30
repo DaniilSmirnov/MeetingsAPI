@@ -28,7 +28,7 @@ class TestConnection(Resource):
     def get(self):
         cnx = get_cnx()
         cnx.close()
-        return {'status': 'success'}
+        return {'success': True}
 
 
 class IsFirst(Resource):
@@ -61,7 +61,6 @@ class IsFirst(Resource):
             cnx.close()
 
         except BaseException as e:
-            print(e)
             return {'failed': 'error'}
 
 
@@ -142,13 +141,12 @@ class GetMeets(Resource):
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where finish > current_date() and ismoderated = 1 order by members_amount asc;"
+            query = "select * from meetings where finish > current_date() and ismoderated = 1 order by members_amount " \
+                    "asc; "
 
             cursor.execute(query)
-            response = prepare_meet(cursor, _id_client)
-            cursor.close()
-            cnx.close()
-            return response
+
+            return prepare_meet(cursor, _id_client)
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
@@ -172,10 +170,8 @@ class GetMeet(Resource):
 
             data = (_meet,)
             cursor.execute(query, data)
-            response = prepare_meet(cursor, _id_client)
-            cursor.close()
-            cnx.close()
-            return response
+
+            return prepare_meet(cursor, _id_client)
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
@@ -193,13 +189,9 @@ class GetUserMeets(Resource):
             query = "select * from meetings where finish > current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s) order by members_amount asc;"
             data = (_id_client,)
             cursor.execute(query, data)
-            response = prepare_meet(cursor, _id_client)
-            cursor.close()
-            cnx.close()
-            return response
+
+            return prepare_meet(cursor, _id_client)
         except BaseException as e:
-            cursor.close()
-            cnx.close()
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
@@ -216,10 +208,8 @@ class GetOwneredMeets(Resource):
             query = "select * from meetings where ownerid = %s;"
             data = (_id_client,)
             cursor.execute(query, data)
-            response = prepare_meet(cursor, _id_client)
-            cursor.close()
-            cnx.close()
-            return response
+
+            return prepare_meet(cursor, _id_client)
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
@@ -237,10 +227,8 @@ class GetExpiredUserMeets(Resource):
             query = "select * from meetings where finish < current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s) order by members_amount asc;"
             data = (_id_client,)
             cursor.execute(query, data)
-            response = prepare_meet(cursor, _id_client)
-            cursor.close()
-            cnx.close()
-            return response
+
+            return prepare_meet(cursor, _id_client)
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
@@ -481,7 +469,7 @@ class RateComment(Resource):
                         data = (_id_client, _comment)
                         cursor.execute(query, data)
                         cnx.commit()
-                        return {'status': 'success'}
+                        return {'success': True}
 
 
 class RemoveComment(Resource):
@@ -667,11 +655,8 @@ class GetAllMeets(Resource):
                 cursor = cnx.cursor(buffered=True)
                 query = "select * from meetings;"
                 cursor.execute(query)
-                response = prepare_meet(cursor, _id)
 
-                cursor.close()
-                cnx.close()
-                return response
+                return prepare_meet(cursor, _id)
             else:
 
                 return {'success': False}
@@ -877,8 +862,6 @@ class getWidget(Resource):
             cnx.close()
             return response
         except BaseException as e:
-            cursor.close()
-            cnx.close()
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
