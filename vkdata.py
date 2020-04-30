@@ -6,17 +6,12 @@ vk = vk_session.get_api()
 
 
 def get_user_data(id):
-    response = vk.users.get(user_ids=id, fields='first_name,last_name,photo_100', lang='ru')
-    return response
+    return vk.users.get(user_ids=id, fields='first_name,last_name,photo_100', lang='ru')
 
 
 def notify(id, name):
-    try:
-        vk.secure.sendNotification(user_id=id, message='Ваш митинг ' + name + ' прошел модерацию', client_secret='kF0Pz974mrpDRYvUStPa')
-    except BaseException as e:
-        print(e)
+    vk.secure.sendNotification(user_id=id, message='Ваш митинг ' + name + ' прошел модерацию', client_secret='kF0Pz974mrpDRYvUStPa')
 
 
 def get_group_data(id):
-    response = vk.groups.getById(group_id=id, fields='photo_100', lang='ru')
-    print(response)
+    return vk.groups.getById(group_id=id, fields='photo_100', lang='ru')
