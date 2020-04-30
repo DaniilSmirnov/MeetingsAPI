@@ -29,20 +29,6 @@ def get_cnx():
     return cnx
 
 
-def is_member(meet, id):
-    cnx = get_cnx()
-
-    cursor = cnx.cursor(buffered=True)
-    query = "select count(id) from meetings where id = %s and id in (select idmeeting from participation where " \
-            "idmember = %s); "
-    data = (meet, id)
-    cursor.execute(query, data)
-
-    for item in cursor:
-        for value in item:
-            return value > 0
-
-
 def is_owner(meet, id):
     cnx = get_cnx()
 
@@ -105,7 +91,6 @@ def prepare_meet(cursor, _id_client):
             if i == 0:
                 meet.update({'id': value})
                 meet.update({'ismember': is_member(value, _id_client)})
-                meet.update({'isowner': is_owner(value, _id_client)})
                 meet.update({'isexpired': is_expired(value)})
             if i == 1:
                 meet.update({'name': value})
@@ -113,6 +98,7 @@ def prepare_meet(cursor, _id_client):
                 meet.update({'description': value})
             if i == 3:
                 meet.update({'ownerid': value})
+                meet.update({'isowner': value == _id_client})
                 if value > 0:
                     meet.update({'owner_name': data[user].get('first_name')})
                     meet.update({'owner_surname': data[user].get('last_name')})
