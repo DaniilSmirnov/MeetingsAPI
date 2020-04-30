@@ -298,7 +298,6 @@ class RemoveMeetMember(Resource):
 
             for item in cursor:
                 for value in item:
-                    print(value)
                     if value == 0:
                         return {'failed': 'user is not in meet'}
 
@@ -700,8 +699,6 @@ class GeoPosition(Resource):
                     dist.append(int(haversine(user, another_user)))
                 i += 1
 
-        print(dist)
-        print(min(dist))
         if min(dist) < 1:
             return {'status': "Ближайший единомышленник находится меньше чем в километре от вас"}
         else:
@@ -777,7 +774,6 @@ class GetGroupInfo(Resource):
 
         if check_vk_viewer_group_role(request):
             launch_params = request.referrer
-            print(request.referrer)
             launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
             group_id = launch_params.get('vk_group_id')
             data = get_group_data(group_id)
