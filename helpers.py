@@ -78,7 +78,7 @@ def prepare_meet(cursor, _id_client):
         for value in item:
             if i == 0:
                 meet.update({'id': value})
-                id = value
+                _id = value
             if i == 1:
                 meet.update({'name': value})
             if i == 2:
@@ -105,9 +105,9 @@ def prepare_meet(cursor, _id_client):
                 meet.update({'approved': value == 1})
             if i == 8:
                 meet.update({'photo': str(value)})
-                meet.update({'ismember': is_member(id, _id_client)})
-                meet.update({'isowner': is_owner(id, _id_client)})
-                meet.update({'isexpired': is_expired(id)})
+                meet.update({'ismember': is_member(_id, _id_client)})
+                meet.update({'isowner': is_owner(_id, _id_client)})
+                meet.update({'isexpired': is_expired(_id)})
             i += 1
         response.append(meet)
     return response

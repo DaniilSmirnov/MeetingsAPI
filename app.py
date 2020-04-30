@@ -47,6 +47,8 @@ class IsFirst(Resource):
                         return True
                     return value == 0
 
+            return True # RICKFLAR
+
         except BaseException:
             return {'success': False}
 
