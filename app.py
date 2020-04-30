@@ -32,58 +32,6 @@ class TestConnection(Resource):
         return {'status': 'success'}
 
 
-class UpdateUser(Resource):
-    def post(self):
-        _id_client = check_sign(request)
-        if _id_client == -100:
-            return {'failed': 403}
-
-        data = get_user_data(_id_client)
-        _name = data[0].get('first_name')
-        _surname = data[0].get('last_name')
-        _photo = data[0].get('photo_100')
-
-        cnx = get_cnx()
-
-        cursor = cnx.cursor(buffered=True)
-        query = "update members set name = %s, surname = %s, photo = %s where idmembers = %s;"
-        data = (_name, _surname, _photo, _id_client)
-        cursor.execute(query, data)
-        cnx.commit()
-
-        cnx.close()
-
-        return {'status': 'Успешно'}
-
-
-class AddUser(Resource):
-    def post(self):
-        try:
-
-            _id_client = check_sign(request)
-            if _id_client == -100:
-                return {'failed': 403}
-
-            cnx = get_cnx()
-
-            data = get_user_data(_id_client)
-            _name = data[0].get('first_name')
-            _surname = data[0].get('last_name')
-            _photo = data[0].get('photo_100')
-
-            cursor = cnx.cursor(buffered=True)
-            query = "insert into members values(%s, default, %s, %s, %s)"
-            data = (_id_client, _name, _surname, _photo)
-            cursor.execute(query, data)
-            cnx.commit()
-
-            cnx.close()
-
-            return {'status': 'Успешно'}
-        except BaseException:
-            return {'status': 'failed'}
-
-
 class IsFirst(Resource):
     def get(self):
         try:
@@ -101,23 +49,14 @@ class IsFirst(Resource):
 
             for item in cursor:
                 for value in item:
-                    data = get_user_data(_id)
-                    _name = data[0].get('first_name')
-                    _surname = data[0].get('last_name')
-                    _photo = data[0].get('photo_100')
                     if value == 0:
-                        query = "insert into members values(%s, default, %s, %s, %s)"
-                        data = (_id, _name, _surname, _photo)
+                        query = "insert into members values(%s, default)"
+                        data = (_id,)
                         cursor.execute(query, data)
                         cnx.commit()
                         cnx.close()
                         return True
                     if value == 1:
-                        query = "update members set name = %s, surname = %s, photo = %s where idmembers = %s;"
-                        data = (_name, _surname, _photo, _id)
-                        cursor.execute(query, data)
-                        cnx.commit()
-                        cnx.close()
                         return False
 
             cnx.close()
@@ -968,8 +907,6 @@ class getWidget(Resource):
 api.add_resource(TestConnection, '/TestConnection')
 
 api.add_resource(IsFirst, '/IsFirst')
-api.add_resource(UpdateUser, '/UpdateUser')
-api.add_resource(AddUser, '/AddUser')
 api.add_resource(GetGroupInfo, '/GetGroupInfo')
 
 api.add_resource(GetMeets, '/GetMeets')
@@ -996,6 +933,4 @@ api.add_resource(getStory, '/getStory')
 api.add_resource(GeoPosition, '/GeoPosition')
 
 if __name__ == '__main__':
-    # context = ('/etc/ssl/vargasoff.ru.crt', '/etc/ssl/private.key')
-    # app.run(host='0.0.0.0', port='8000', ssl_context=context)
     app.run(host='0.0.0.0', port='8000')
