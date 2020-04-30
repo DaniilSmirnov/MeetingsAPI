@@ -1,7 +1,9 @@
 import validators
 import mysql.connector
 from vkdata import get_user_data, get_group_data
-
+from PIL import Image
+from io import BytesIO
+import base64
 
 def check_url(url):
     try:
@@ -134,3 +136,15 @@ def is_liked(id, comment):
         for value in item:
             return value == 1
 
+
+def compress_blob(image):
+    image = base64.b64decode(image)
+    corrected = [256 + x if x < 0 else x for x in image]
+
+    image = Image.open(BytesIO(bytes(corrected)))
+    image = image.resize((160, 300), Image.ANTIALIAS)
+
+    buffered = io.BytesIO()
+    image.save(buffered, format=original.format, optimize=True, quality=90)
+    image = base64.b64encode(buffered.getvalue())
+    return image
