@@ -11,10 +11,7 @@ def check_vk_viewer_group_role(request):
     print(request.referrer)
     launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
     role = launch_params.get('vk_viewer_group_role')
-    if role == 'admin':
-        return True
-    else:
-        return False
+    return role == 'admin'
 
 
 def check_sign(request):
@@ -29,9 +26,6 @@ def check_sign(request):
             return query.get("sign") == decoded_hash_code
 
     launch_params = request.referrer
-    # print(request.referrer)
-    # print(request.user_agent)
-    # print(request.remote_addr)
 
     launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
@@ -57,11 +51,4 @@ def checkuser(id, request):
     cursor.execute(query, data)
     for item in cursor:
         for value in item:
-            if str(value) == "admin":
-                cursor.close()
-                cnx.close()
-                return True
-            else:
-                cursor.close()
-                cnx.close()
-                return False
+            return str(value) == "admin"

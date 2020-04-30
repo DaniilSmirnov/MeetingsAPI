@@ -27,12 +27,8 @@ def prepare_storie(url, name):
     draw.text((80 - 1, 900 - 1), "Я сижу дома и поддерживаю\n" + "петицию\n" + name, (0, 0, 0), font=font_b, align='center')
     draw.text((80, 900), "Я сижу дома и поддерживаю\n" + "петицию\n" + name, (255, 255, 255), font=font, align='center')
 
-
     buffered = io.BytesIO()
     blurred.save(buffered, format=original.format)
     img_str = base64.b64encode(buffered.getvalue())
     os.remove(filename)
-    #blurred.save('blurred.png')
     return {'image': str(img_str)}
-
-#prepare_storie('https://sun9-25.userapi.com/c850232/v850232950/12288e/4ERV0WiDAPk.jpg', 'Понизьте цены на сырки')
