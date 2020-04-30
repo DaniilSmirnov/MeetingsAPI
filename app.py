@@ -740,7 +740,7 @@ class GetGroupInfo(Resource):
             return False, 403
 
 
-class getWidget(Resource):
+class GetWidget(Resource):
     def get(self):
         try:
             _id = check_sign(request)
@@ -808,8 +808,9 @@ api.add_resource(DeApproveMeet, '/admin/DeApprove')
 api.add_resource(GetAllMeets, '/admin/GetAllMeets')
 api.add_resource(DenyMeet, '/admin/DenyMeet')
 
-api.add_resource(GetStory, '/getStory')
+api.add_resource(GetStory, '/GetStory')
 api.add_resource(GeoPosition, '/GeoPosition')
+api.add_resource(GetWidget, '/GetWidget')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port='8000')
