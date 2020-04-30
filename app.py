@@ -1,3 +1,4 @@
+from auth import *
 from flask import Flask
 from flask import request
 from flask_cors import CORS
@@ -5,10 +6,8 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_restful import Resource, Api, reqparse
 from haversine import haversine
-
-from auth import *
-from recognize import search
 from helpers import *
+from recognize import search
 from stories import prepare_storie
 from vkdata import notify
 
@@ -133,7 +132,6 @@ class AddMeet(Resource):
 
 
 class GetMeets(Resource):
-
     def get(self):
         try:
 

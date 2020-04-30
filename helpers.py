@@ -71,6 +71,7 @@ def isexpired(meet):
 
 def prepare_meet(cursor, _id_client):
     response = []
+
     for item in cursor:
         i = 0
         meet = {}
@@ -86,18 +87,13 @@ def prepare_meet(cursor, _id_client):
                 meet.update({'ownerid': value})
                 if value > 0:
                     data = get_user_data(value)
-                    _name = data[0].get('first_name')
-                    _surname = data[0].get('last_name')
-                    _photo = data[0].get('photo_100')
-                    meet.update({'owner_name': _name})
-                    meet.update({'owner_surname': _surname})
-                    meet.update({'owner_photo': _photo})
+                    meet.update({'owner_name': data[0].get('first_name')})
+                    meet.update({'owner_surname': data[0].get('last_name')})
+                    meet.update({'owner_photo': data[0].get('photo_100')})
                 else:
                     data = get_group_data(value * -1)
-                    _name = data[0].get('name')
-                    _photo = data[0].get('photo_100')
-                    meet.update({'owner_name': _name})
-                    meet.update({'owner_photo': _photo})
+                    meet.update({'owner_name': data[0].get('name')})
+                    meet.update({'owner_photo': data[0].get('name')})
 
             if i == 4:
                 meet.update({'members_amount': value})
@@ -108,7 +104,7 @@ def prepare_meet(cursor, _id_client):
             if i == 7:
                 if value == 1:
                     meet.update({'approved': True})
-                if value != 1:
+                else:
                     meet.update({'approved': False})
             if i == 8:
                 meet.update({'photo': str(value)})
