@@ -47,7 +47,7 @@ class IsFirst(Resource):
                         cursor.execute(query, data)
                         cnx.commit()
                         return True
-                    return value == 1
+                    return value == 0
 
         except BaseException:
             return {'success': False}
@@ -77,9 +77,7 @@ class AddMeet(Resource):
         _photo = args['photo']
         _is_group = args['isGroup']
 
-        if check_user(_id, request):
-            pass
-        else:
+        if not check_user(_id, request):
             if (len(_name) == 0) or _name.isspace() or _name.isdigit() or len(_name) > 45 or search(_name):
                 return {'failed': 'Некорректное название петиции'}
             if len(_description) == 0 or _description.isspace() or _description.isdigit() or len(
