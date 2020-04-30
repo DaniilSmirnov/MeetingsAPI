@@ -209,7 +209,8 @@ class GetExpiredUserMeets(Resource):
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where finish < current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s) order by members_amount asc;"
+            query = "select * from meetings where finish < current_date() and ismoderated = 1 and id in (select " \
+                    "idmeeting from participation where idmember = %s) order by members_amount asc; "
             data = (_id,)
             cursor.execute(query, data)
 
@@ -740,9 +741,9 @@ class GetGroupInfo(Resource):
                 'id': group_id,
                 'name': data[0].get('name'),
                 'photo': data[0].get('photo_100')
-                   }
+            }
         else:
-            return False, 403
+            return {'success': False}, 403
 
 
 class GetWidget(Resource):
