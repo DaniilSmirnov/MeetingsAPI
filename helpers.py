@@ -75,7 +75,7 @@ def get_data(cursor):
     for item in cursor:
         i = 0
         for value in item:
-            if i == 3:
+            if i == 3 and value > 0:
                 _ids.append(value)
             i += 1
 
@@ -92,12 +92,13 @@ def get_data(cursor):
 
 
 def prepare_meet(cursor, _id_client):
+    buf = cursor.fetchall()
+    data = get_data(buf)
 
-    #print(get_data(cursor))
-
+    user = 0
     response = []
 
-    for item in cursor:
+    for item in buf:
         i = 0
         meet = {}
         for value in item:
@@ -113,14 +114,14 @@ def prepare_meet(cursor, _id_client):
             if i == 3:
                 meet.update({'ownerid': value})
                 if value > 0:
-                    data = get_user_data(value)
-                    meet.update({'owner_name': data[0].get('first_name')})
-                    meet.update({'owner_surname': data[0].get('last_name')})
-                    meet.update({'owner_photo': data[0].get('photo_100')})
+                    meet.update({'owner_name': data[user].get('first_name')})
+                    meet.update({'owner_surname': data[user].get('last_name')})
+                    meet.update({'owner_photo': data[user].get('photo_100')})
+                    user += 1
                 else:
-                    data = get_group_data(value * -1)
-                    meet.update({'owner_name': data[0].get('name')})
-                    meet.update({'owner_photo': data[0].get('photo')})
+                    group_data = get_group_data(value * -1)
+                    meet.update({'owner_name': group_data[0].get('name')})
+                    meet.update({'owner_photo': group_data[0].get('photo')})
             if i == 4:
                 meet.update({'members_amount': value})
             if i == 5:
