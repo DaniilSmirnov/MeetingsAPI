@@ -565,10 +565,6 @@ class ApproveMeet(Resource):
 
 class DeApproveMeet(Resource):
     def post(self):
-        _id = check_sign(request)
-        if _id == -100:
-            return {'success': False}, 403
-
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
         args = parser.parse_args()
@@ -579,7 +575,7 @@ class DeApproveMeet(Resource):
 
         _meet = args['meet']
 
-        if checkuser(_id, request):
+        if checkuser(check_sign(request), request):
             query = "select ismoderated from meetings where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
@@ -601,7 +597,7 @@ class DeApproveMeet(Resource):
         else:
             cursor.close()
             cnx.close()
-            return {'success': False}
+            return {'success': False}, 403
 
 
 class DenyMeet(Resource):
@@ -769,8 +765,7 @@ class GeoPosition(Resource):
 class getStory(Resource):
     def get(self):
 
-        _id = check_sign(request)
-        if _id == -100:
+        if check_sign(request) == -100:
             return {'success': False}, 403
 
         parser = reqparse.RequestParser()
@@ -813,10 +808,6 @@ class GetGroupInfo(Resource):
             return {'id': group_id, 'name': data[0].get('name'), 'photo': data[0].get('photo_100')}
         else:
             return False, 403
-
-
-class GetByGroup(Resource):
-    pass
 
 
 class getWidget(Resource):
