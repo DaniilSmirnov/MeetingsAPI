@@ -103,7 +103,7 @@ class AddMeet(Resource):
             cursor = cnx.cursor(buffered=True)
 
             query = "insert into meetings values (default, %s, %s, %s, default, %s, %s, default, %s, null, 1)"
-            data = (_name, _description, _id, _start, _finish, _photo)
+            data = (_name, _description, _id, _start, _finish, compress_blob(_photo))
             cursor.execute(query, data)
             cnx.commit()
 

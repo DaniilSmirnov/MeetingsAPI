@@ -5,6 +5,7 @@ from PIL import Image
 from io import BytesIO
 import base64
 
+
 def check_url(url):
     try:
         if url.find(' ') == -1:
@@ -138,13 +139,15 @@ def is_liked(id, comment):
 
 
 def compress_blob(image):
+    image = image.split(',')
+    image = image[1]
     image = base64.b64decode(image)
     corrected = [256 + x if x < 0 else x for x in image]
 
     image = Image.open(BytesIO(bytes(corrected)))
     image = image.resize((160, 300), Image.ANTIALIAS)
 
-    buffered = io.BytesIO()
-    image.save(buffered, format=original.format, optimize=True, quality=90)
+    buffered = BytesIO()
+    image.save(buffered, optimize=True, quality=90)
     image = base64.b64encode(buffered.getvalue())
     return image
