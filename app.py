@@ -142,7 +142,7 @@ class GetMeets(Resource):
 
             cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where finish > current_date() and ismoderated = 1 order by members_amount " \
-                    "asc; "
+                    "asc;"
 
             cursor.execute(query)
 
@@ -256,7 +256,7 @@ class AddMeetMember(Resource):
             for item in cursor:
                 for value in item:
                     if value != 1:
-                        return {'failed': 'Meet is unavaible'}
+                        return {'failed': 'Meet is not exists'}
 
             query = "select count(idmember) from participation where idmember = %s and idmeeting = %s;"
             data = (_id_client, _meet,)
@@ -442,7 +442,7 @@ class RateComment(Resource):
         for item in cursor:
             for value in item:
                 if value < 1:
-                    return {'failed': 'Comment is not exist'}
+                    return {'failed': 'Comment is not exists'}
 
         query = "select count(idratings) from ratings where iduser = %s and idcomment = %s;"
         data = (_id_client, _comment)
@@ -653,7 +653,7 @@ class GetAllMeets(Resource):
                 cnx = get_cnx()
 
                 cursor = cnx.cursor(buffered=True)
-                query = "select * from meetings;"
+                query = "select * from meetings where isvisible = 1;"
                 cursor.execute(query)
 
                 return prepare_meet(cursor, _id)
