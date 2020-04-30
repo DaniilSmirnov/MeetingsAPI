@@ -693,7 +693,7 @@ class GeoPosition(Resource):
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
-class getStory(Resource):
+class GetStory(Resource):
     def get(self):
 
         if check_sign(request) == -100:
@@ -713,15 +713,16 @@ class getStory(Resource):
         cursor.execute(query, data)
 
         i = 0
+        response = {}
         for item in cursor:
             for value in item:
                 if i == 0:
-                    name = value
+                    response.update({'name': value})
                 if i == 1:
-                    photo = value
-                    return prepare_storie(photo, name)
+                    response.update({'photo': value})
                 i += 1
 
+        return response
 
 class GetGroupInfo(Resource):
     def get(self):
@@ -807,7 +808,7 @@ api.add_resource(DeApproveMeet, '/admin/DeApprove')
 api.add_resource(GetAllMeets, '/admin/GetAllMeets')
 api.add_resource(DenyMeet, '/admin/DenyMeet')
 
-api.add_resource(getStory, '/getStory')
+api.add_resource(GetStory, '/getStory')
 api.add_resource(GeoPosition, '/GeoPosition')
 
 if __name__ == '__main__':
