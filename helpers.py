@@ -69,7 +69,32 @@ def is_expired(meet):
             return value > 0
 
 
+def get_data(cursor):
+
+    _ids = []
+    for item in cursor:
+        i = 0
+        for value in item:
+            if i == 3:
+                _ids.append(value)
+            i += 1
+
+    def f(lst, n):
+        return [lst[i:i + n] for i in range(0, len(lst), n)]
+
+    data = []
+
+    _ids = f(_ids, 1000)
+    for item in _ids:
+        data += get_user_data(item)
+
+    return data
+
+
 def prepare_meet(cursor, _id_client):
+
+    #print(get_data(cursor))
+
     response = []
 
     for item in cursor:
@@ -78,7 +103,9 @@ def prepare_meet(cursor, _id_client):
         for value in item:
             if i == 0:
                 meet.update({'id': value})
-                _id = value
+                meet.update({'ismember': is_member(value, _id_client)})
+                meet.update({'isowner': is_owner(value, _id_client)})
+                meet.update({'isexpired': is_expired(value)})
             if i == 1:
                 meet.update({'name': value})
             if i == 2:
@@ -94,7 +121,6 @@ def prepare_meet(cursor, _id_client):
                     data = get_group_data(value * -1)
                     meet.update({'owner_name': data[0].get('name')})
                     meet.update({'owner_photo': data[0].get('photo')})
-
             if i == 4:
                 meet.update({'members_amount': value})
             if i == 5:
@@ -105,9 +131,7 @@ def prepare_meet(cursor, _id_client):
                 meet.update({'approved': value == 1})
             if i == 8:
                 meet.update({'photo': str(value)})
-                meet.update({'ismember': is_member(_id, _id_client)})
-                meet.update({'isowner': is_owner(_id, _id_client)})
-                meet.update({'isexpired': is_expired(_id)})
+
             i += 1
         response.append(meet)
     return response
