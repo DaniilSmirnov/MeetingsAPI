@@ -5,11 +5,9 @@ from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_restful import Resource, Api, reqparse
-from haversine import haversine
 from helpers import *
 from recognize import search
 from stories import prepare_storie
-from vkdata import notify
 
 app = Flask(__name__)
 
@@ -172,7 +170,8 @@ class GetUserMeets(Resource):
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where finish > current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s) order by members_amount asc;"
+            query = "select * from meetings where finish > current_date() and ismoderated = 1 and id in (select " \
+                    "idmeeting from participation where idmember = %s) order by members_amount asc; "
             data = (_id,)
             cursor.execute(query, data)
 
@@ -210,7 +209,8 @@ class GetExpiredUserMeets(Resource):
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where finish < current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s) order by members_amount asc;"
+            query = "select * from meetings where finish < current_date() and ismoderated = 1 and id in (select " \
+                    "idmeeting from participation where idmember = %s) order by members_amount asc; "
             data = (_id,)
             cursor.execute(query, data)
 
@@ -377,7 +377,7 @@ class GetMeetComments(Resource):
             for value in item:
                 if i == 0:
                     comment.update({'id': value})
-                    id = value
+                    _comment_id = value
                 if i == 1:
                     comment.update({'comment': value})
                 if i == 2:
@@ -390,7 +390,7 @@ class GetMeetComments(Resource):
                     comment.update({'meetingid': value})
                 if i == 4:
                     comment.update({'rating': value})
-                    comment.update({'isliked': is_liked(_id, id)})
+                    comment.update({'isliked': is_liked(_id, _comment_id)})
                 i += 1
             response.append(comment)
 
@@ -520,7 +520,6 @@ class ApproveMeet(Resource):
                         name = str(value)
                     if i == 1:
                         id = int(value)
-                        notify(id, name)
                         query = "insert into participation values (default, %s, %s);"
                         data = (_meet, id)
                         cursor.execute(query, data)
@@ -695,7 +694,7 @@ class GeoPosition(Resource):
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
-class getStory(Resource):
+class GetStory(Resource):
     def get(self):
 
         if check_sign(request) == -100:
@@ -715,14 +714,16 @@ class getStory(Resource):
         cursor.execute(query, data)
 
         i = 0
+        response = {}
         for item in cursor:
             for value in item:
                 if i == 0:
-                    name = value
+                    response.update({'name': value})
                 if i == 1:
-                    photo = value
-                    return prepare_storie(photo, name)
+                    response.update({'photo': value})
                 i += 1
+
+        return response
 
 
 class GetGroupInfo(Resource):
@@ -736,12 +737,16 @@ class GetGroupInfo(Resource):
             launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
             group_id = launch_params.get('vk_group_id')
             data = get_group_data(group_id)
-            return {'id': group_id, 'name': data[0].get('name'), 'photo': data[0].get('photo_100')}
+            return {
+                'id': group_id,
+                'name': data[0].get('name'),
+                'photo': data[0].get('photo_100')
+            }
         else:
-            return False, 403
+            return {'success': False}, 403
 
 
-class getWidget(Resource):
+class GetWidget(Resource):
     def get(self):
         try:
             _id = check_sign(request)
@@ -809,8 +814,9 @@ api.add_resource(DeApproveMeet, '/admin/DeApprove')
 api.add_resource(GetAllMeets, '/admin/GetAllMeets')
 api.add_resource(DenyMeet, '/admin/DenyMeet')
 
-api.add_resource(getStory, '/getStory')
+api.add_resource(GetStory, '/GetStory')
 api.add_resource(GeoPosition, '/GeoPosition')
+api.add_resource(GetWidget, '/GetWidget')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port='8000')
