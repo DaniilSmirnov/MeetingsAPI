@@ -27,7 +27,6 @@ limiter = Limiter(
 class TestConnection(Resource):
     def get(self):
         cnx = get_cnx()
-        cnx.close()
         return {'success': True}
 
 
@@ -53,12 +52,10 @@ class IsFirst(Resource):
                         data = (_id,)
                         cursor.execute(query, data)
                         cnx.commit()
-                        cnx.close()
+
                         return True
                     if value == 1:
                         return False
-
-            cnx.close()
 
         except BaseException:
             return {'success': False}
@@ -122,8 +119,6 @@ class AddMeet(Resource):
             cursor.execute(query, data)
             cnx.commit()
 
-            cursor.close()
-            cnx.close()
             return {'success': 'Ваша петиция отправлена на модерацию, обычно это занимает до трех часов'}
 
         except BaseException as e:
@@ -274,8 +269,6 @@ class AddMeetMember(Resource):
             cursor.execute(query, data)
             cnx.commit()
 
-            cursor.close()
-            cnx.close()
             return {'success': True}
 
         except BaseException as e:
@@ -318,8 +311,6 @@ class RemoveMeetMember(Resource):
             cursor.execute(query, data)
             cnx.commit()
 
-            cursor.close()
-            cnx.close()
             return {'success': True}
         except BaseException:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.'}
@@ -365,8 +356,6 @@ class AddComment(Resource):
         cursor.execute(query, data)
         cnx.commit()
 
-        cursor.close()
-        cnx.close()
         return {'success': True}
 
 
@@ -413,8 +402,6 @@ class GetMeetComments(Resource):
                 i += 1
             response.append(comment)
 
-        cursor.close()
-        cnx.close()
         return response
 
 
@@ -500,8 +487,6 @@ class RemoveComment(Resource):
         cursor.execute(query, data)
         cnx.commit()
 
-        cursor.close()
-        cnx.close()
         return {'status': True}
 
 
@@ -554,12 +539,9 @@ class ApproveMeet(Resource):
 
                     i += 1
 
-            cursor.close()
-            cnx.close()
             return {'success': True}
         else:
-            cursor.close()
-            cnx.close()
+
             return {'success': False}
 
 
@@ -591,12 +573,10 @@ class DeApproveMeet(Resource):
             data = (_meet,)
             cursor.execute(query, data)
             cnx.commit()
-            cursor.close()
-            cnx.close()
+
             return {'success': True}
         else:
-            cursor.close()
-            cnx.close()
+
             return {'success': False}, 403
 
 
@@ -629,12 +609,10 @@ class DenyMeet(Resource):
             data = (_meet,)
             cursor.execute(query, data)
             cnx.commit()
-            cursor.close()
-            cnx.close()
+
             return {'success': True}
         else:
-            cursor.close()
-            cnx.close()
+
             return {'success': False}
 
 
@@ -756,7 +734,6 @@ class GeoPosition(Resource):
                 cursor.execute(query, data)
 
             cnx.commit()
-            cnx.close()
             return {'status': 'success'}
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
@@ -850,7 +827,6 @@ class getWidget(Resource):
             response.update({"title": 'Петиции'})
             response.update({'rows': rows})
 
-            cnx.close()
             return response
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
