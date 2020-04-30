@@ -102,10 +102,7 @@ def prepare_meet(cursor, _id_client):
             if i == 6:
                 meet.update({'finish': str(value)[0:-9]})
             if i == 7:
-                if value == 1:
-                    meet.update({'approved': True})
-                else:
-                    meet.update({'approved': False})
+                meet.update({'approved': value == 1})
             if i == 8:
                 meet.update({'photo': str(value)})
                 meet.update({'ismember': ismember(id, _id_client)})
