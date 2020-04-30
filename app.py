@@ -5,11 +5,9 @@ from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_restful import Resource, Api, reqparse
-from haversine import haversine
 from helpers import *
 from recognize import search
 from stories import prepare_storie
-from vkdata import notify
 
 app = Flask(__name__)
 
@@ -172,7 +170,8 @@ class GetUserMeets(Resource):
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where finish > current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s) order by members_amount asc;"
+            query = "select * from meetings where finish > current_date() and ismoderated = 1 and id in (select " \
+                    "idmeeting from participation where idmember = %s) order by members_amount asc; "
             data = (_id,)
             cursor.execute(query, data)
 
@@ -377,7 +376,7 @@ class GetMeetComments(Resource):
             for value in item:
                 if i == 0:
                     comment.update({'id': value})
-                    id = value
+                    _comment_id = value
                 if i == 1:
                     comment.update({'comment': value})
                 if i == 2:
@@ -390,7 +389,7 @@ class GetMeetComments(Resource):
                     comment.update({'meetingid': value})
                 if i == 4:
                     comment.update({'rating': value})
-                    comment.update({'isliked': is_liked(_id, id)})
+                    comment.update({'isliked': is_liked(_id, _comment_id)})
                 i += 1
             response.append(comment)
 
@@ -520,7 +519,6 @@ class ApproveMeet(Resource):
                         name = str(value)
                     if i == 1:
                         id = int(value)
-                        notify(id, name)
                         query = "insert into participation values (default, %s, %s);"
                         data = (_meet, id)
                         cursor.execute(query, data)
