@@ -8,14 +8,12 @@ from helpers import get_cnx
 
 def check_vk_viewer_group_role(request):
     launch_params = request.referrer
-    print(request.referrer)
     launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
     role = launch_params.get('vk_viewer_group_role')
     return role == 'admin'
 
 
 def check_sign(request):
-
     def is_valid(*, query: dict, secret: str) -> bool:
         vk_subset = OrderedDict(sorted(x for x in query.items() if x[0][:3] == "vk_"))
         hash_code = b64encode(HMAC(secret.encode(), urlencode(vk_subset, doseq=True).encode(), sha256).digest())
@@ -35,7 +33,7 @@ def check_sign(request):
         return - 100
 
 
-def checkuser(id, request):
+def check_user(id, request):
     if str(check_sign(request)) != str(id):
         return {'failed': '403'}
 

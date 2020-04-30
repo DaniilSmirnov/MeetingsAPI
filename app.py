@@ -77,7 +77,7 @@ class AddMeet(Resource):
         _photo = args['photo']
         _is_group = args['isGroup']
 
-        if checkuser(_id, request):
+        if check_user(_id, request):
             pass
         else:
             if (len(_name) == 0) or _name.isspace() or _name.isdigit() or len(_name) > 45 or search(_name):
@@ -381,15 +381,16 @@ class GetMeetComments(Resource):
                 if i == 1:
                     comment.update({'comment': value})
                 if i == 2:
+                    data = get_user_data(value)
                     comment.update({'ownerid': value})
-                    comment.update({'owner_name': get_owner_name(value)})
-                    comment.update({'owner_surname': get_owner_surname(value)})
-                    comment.update({'owner_photo': get_owner_photo(value)})
+                    comment.update({'owner_name': data[0].get('first_name')})
+                    comment.update({'owner_surname': data[0].get('last_name')})
+                    comment.update({'owner_photo': data[0].get('photo_100')})
                 if i == 3:
                     comment.update({'meetingid': value})
                 if i == 4:
                     comment.update({'rating': value})
-                    comment.update({'isliked': isliked(_id, id)})
+                    comment.update({'isliked': is_liked(_id, id)})
                 i += 1
             response.append(comment)
 
@@ -470,7 +471,7 @@ class RemoveComment(Resource):
         for item in cursor:
             for value in item:
                 if value < 1:
-                    if not checkuser(_id, request):
+                    if not check_user(_id, request):
                         return {'failed': 'Comment doesnt exists'}
 
         query = "delete from comments where idcomments = %s"
@@ -495,7 +496,7 @@ class ApproveMeet(Resource):
         cursor = cnx.cursor(buffered=True)
 
         _meet = args['meet']
-        if checkuser(_id, request):
+        if check_user(_id, request):
             query = "select ismoderated from meetings where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
@@ -548,7 +549,7 @@ class DeApproveMeet(Resource):
 
         _meet = args['meet']
 
-        if checkuser(check_sign(request), request):
+        if check_user(check_sign(request), request):
             query = "select ismoderated from meetings where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
@@ -587,7 +588,7 @@ class DenyMeet(Resource):
 
         _meet = args['meet']
 
-        if checkuser(_id, request):
+        if check_user(_id, request):
             query = "select isvisible from meetings where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
@@ -614,7 +615,7 @@ class GetAllMeets(Resource):
             if _id == -100:
                 return {'success': False}, 403
 
-            if checkuser(_id, request):
+            if check_user(_id, request):
 
                 cnx = get_cnx()
 

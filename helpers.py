@@ -29,7 +29,7 @@ def get_cnx():
     return cnx
 
 
-def ismember(meet, id):
+def is_member(meet, id):
     cnx = get_cnx()
 
     cursor = cnx.cursor(buffered=True)
@@ -43,7 +43,7 @@ def ismember(meet, id):
             return value > 0
 
 
-def isowner(meet, id):
+def is_owner(meet, id):
     cnx = get_cnx()
 
     cursor = cnx.cursor(buffered=True)
@@ -56,7 +56,7 @@ def isowner(meet, id):
             return value > 0
 
 
-def isexpired(meet):
+def is_expired(meet):
     cnx = get_cnx()
 
     cursor = cnx.cursor(buffered=True)
@@ -93,7 +93,7 @@ def prepare_meet(cursor, _id_client):
                 else:
                     data = get_group_data(value * -1)
                     meet.update({'owner_name': data[0].get('name')})
-                    meet.update({'owner_photo': data[0].get('name')})
+                    meet.update({'owner_photo': data[0].get('photo')})
 
             if i == 4:
                 meet.update({'members_amount': value})
@@ -105,15 +105,15 @@ def prepare_meet(cursor, _id_client):
                 meet.update({'approved': value == 1})
             if i == 8:
                 meet.update({'photo': str(value)})
-                meet.update({'ismember': ismember(id, _id_client)})
-                meet.update({'isowner': isowner(id, _id_client)})
-                meet.update({'isexpired': isexpired(id)})
+                meet.update({'ismember': is_member(id, _id_client)})
+                meet.update({'isowner': is_owner(id, _id_client)})
+                meet.update({'isexpired': is_expired(id)})
             i += 1
         response.append(meet)
     return response
 
 
-def isliked(id, comment):
+def is_liked(id, comment):
     cnx = get_cnx()
     cursor = cnx.cursor()
     query = "select count(idratings) from ratings where iduser = %s and idcomment = %s;"
