@@ -29,11 +29,11 @@ def get_cnx():
     return cnx
 
 
-def is_owner(meet, id):
+def is_member(meet, id):
     cnx = get_cnx()
 
     cursor = cnx.cursor(buffered=True)
-    query = "select count(id) from meetings where id = %s and ownerid = %s;"
+    query = "select idmeeting from participation where idmeeting = %s and idmember = %s; "
     data = (meet, id)
     cursor.execute(query, data)
 
@@ -111,9 +111,9 @@ def prepare_meet(cursor, _id_client):
             if i == 4:
                 meet.update({'members_amount': value})
             if i == 5:
-                meet.update({'start': str(value)[0:-9]})
+                meet.update({'start': str(value)})
             if i == 6:
-                meet.update({'finish': str(value)[0:-9]})
+                meet.update({'finish': str(value)})
             if i == 7:
                 meet.update({'approved': value == 1})
             if i == 8:

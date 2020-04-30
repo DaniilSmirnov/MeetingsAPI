@@ -617,7 +617,7 @@ class GetAllMeets(Resource):
                 cnx = get_cnx()
 
                 cursor = cnx.cursor(buffered=True)
-                query = "select * from meetings where isvisible = 1;"
+                query = "select * from meetings;"
                 cursor.execute(query)
 
                 return prepare_meet(cursor, _id)
