@@ -68,6 +68,10 @@ class AddMeet(Resource):
     decorators = [limiter.limit("3 per day")]
 
     def post(self):
+        _id = check_sign(request)
+        if _id == -100:
+            return {'failed': 403}
+
         parser = reqparse.RequestParser()
         parser.add_argument('name', type=str)
         parser.add_argument('description', type=str)
@@ -84,11 +88,7 @@ class AddMeet(Resource):
         _photo = args['photo']
         _is_group = args['isGroup']
 
-        _owner_id = check_sign(request)
-        if _owner_id == -100:
-            return {'failed': 403}
-
-        if checkuser(_owner_id, request):
+        if checkuser(_id, request):
             pass
         else:
             if (len(_name) == 0) or _name.isspace() or _name.isdigit() or len(_name) > 45 or search(_name):
@@ -110,7 +110,7 @@ class AddMeet(Resource):
             if check_vk_viewer_group_role(request):
                 launch_params = request.referrer
                 launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
-                _owner_id = int(launch_params.get('vk_group_id')) * -1
+                _id = int(launch_params.get('vk_group_id')) * -1
 
         try:
             cnx = get_cnx()
@@ -118,7 +118,7 @@ class AddMeet(Resource):
             cursor = cnx.cursor(buffered=True)
 
             query = "insert into meetings values (default, %s, %s, %s, default, %s, %s, default, %s, null, 1)"
-            data = (_name, _description, _owner_id, _start, _finish, _photo)
+            data = (_name, _description, _id, _start, _finish, _photo)
             cursor.execute(query, data)
             cnx.commit()
 
@@ -133,9 +133,8 @@ class AddMeet(Resource):
 class GetMeets(Resource):
     def get(self):
         try:
-
-            _id_client = check_sign(request)
-            if _id_client == -100:
+            _id = check_sign(request)
+            if _id == -100:
                 return {'failed': 403}
 
             cnx = get_cnx()
@@ -146,7 +145,7 @@ class GetMeets(Resource):
 
             cursor.execute(query)
 
-            return prepare_meet(cursor, _id_client)
+            return prepare_meet(cursor, _id)
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
@@ -154,14 +153,14 @@ class GetMeets(Resource):
 class GetMeet(Resource):
     def get(self):
         try:
+            _id = check_sign(request)
+            if _id == -100:
+                return {'failed': 403}
+
             parser = reqparse.RequestParser()
             parser.add_argument('meet', type=int)
             args = parser.parse_args()
             _meet = args['meet']
-
-            _id_client = check_sign(request)
-            if _id_client == -100:
-                return {'failed': 403}
 
             cnx = get_cnx()
 
@@ -171,7 +170,7 @@ class GetMeet(Resource):
             data = (_meet,)
             cursor.execute(query, data)
 
-            return prepare_meet(cursor, _id_client)
+            return prepare_meet(cursor, _id)
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
@@ -179,18 +178,18 @@ class GetMeet(Resource):
 class GetUserMeets(Resource):
     def get(self):
         try:
-            _id_client = check_sign(request)
-            if _id_client == -100:
+            _id = check_sign(request)
+            if _id == -100:
                 return {'failed': 403}
 
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where finish > current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s) order by members_amount asc;"
-            data = (_id_client,)
+            data = (_id,)
             cursor.execute(query, data)
 
-            return prepare_meet(cursor, _id_client)
+            return prepare_meet(cursor, _id)
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
@@ -198,18 +197,18 @@ class GetUserMeets(Resource):
 class GetOwneredMeets(Resource):
     def get(self):
         try:
-            _id_client = check_sign(request)
-            if _id_client == -100:
-                return {'failed': 403}
+            _id = check_sign(request)
+            if _id == -100:
+                return {'success': False}, 403
 
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where ownerid = %s;"
-            data = (_id_client,)
+            data = (_id,)
             cursor.execute(query, data)
 
-            return prepare_meet(cursor, _id_client)
+            return prepare_meet(cursor, _id)
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
@@ -217,35 +216,35 @@ class GetOwneredMeets(Resource):
 class GetExpiredUserMeets(Resource):
     def get(self):
         try:
-            _id_client = check_sign(request)
-            if _id_client == -100:
-                return {'failed': 403}
+            _id = check_sign(request)
+            if _id == -100:
+                return {'success': False}, 403
 
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where finish < current_date() and ismoderated = 1 and id in (select idmeeting from participation where idmember = %s) order by members_amount asc;"
-            data = (_id_client,)
+            data = (_id,)
             cursor.execute(query, data)
 
-            return prepare_meet(cursor, _id_client)
+            return prepare_meet(cursor, _id)
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
 class AddMeetMember(Resource):
     def post(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument('meet', type=int)
-        args = parser.parse_args()
-
-        _meet = args['meet']
-
-        _id_client = check_sign(request)
-        if _id_client == -100:
+        _id = check_sign(request)
+        if _id == -100:
             return {'failed': 403}
 
         try:
+            parser = reqparse.RequestParser()
+            parser.add_argument('meet', type=int)
+            args = parser.parse_args()
+
+            _meet = args['meet']
+
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
@@ -259,7 +258,7 @@ class AddMeetMember(Resource):
                         return {'failed': 'Meet is not exists'}
 
             query = "select count(idmember) from participation where idmember = %s and idmeeting = %s;"
-            data = (_id_client, _meet,)
+            data = (_id, _meet)
             cursor.execute(query, data)
 
             for item in cursor:
@@ -268,7 +267,7 @@ class AddMeetMember(Resource):
                         return {'failed': 'User is in meeting yet'}
 
             query = "insert into participation values (default, %s, %s);"
-            data = (_meet, _id_client,)
+            data = (_meet, _id)
             cursor.execute(query, data)
             query = "update meetings set members_amount = members_amount + 1 where id = %s;"
             data = (_meet,)
@@ -285,22 +284,23 @@ class AddMeetMember(Resource):
 
 class RemoveMeetMember(Resource):
     def post(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument('meet', type=int)
-        args = parser.parse_args()
+        _id = check_sign(request)
+        if _id == -100:
+            return {'success': False}, 403
+
         try:
+            parser = reqparse.RequestParser()
+            parser.add_argument('meet', type=int)
+            args = parser.parse_args()
+
             cnx = get_cnx()
 
             cursor = cnx.cursor()
 
             _meet = args['meet']
 
-            _id_client = check_sign(request)
-            if _id_client == -100:
-                return {'failed': 403}
-
             query = "select count(idmember) from participation where idmember = %s and idmeeting = %s;"
-            data = (_id_client, _meet,)
+            data = (_id, _meet,)
             cursor.execute(query, data)
 
             for item in cursor:
@@ -310,7 +310,7 @@ class RemoveMeetMember(Resource):
                         return {'failed': 'user is not in meet'}
 
             query = "delete from participation where idmember = %s and idmeeting = %s;"
-            data = (_id_client, _meet,)
+            data = (_id, _meet,)
             cursor.execute(query, data)
             cnx.commit()
             query = "update meetings set members_amount = members_amount -1 where id = %s and members_amount > 0"
@@ -327,6 +327,10 @@ class RemoveMeetMember(Resource):
 
 class AddComment(Resource):
     def post(self):
+        _id = check_sign(request)
+        if _id == -100:
+            return {'success': False}, 403
+
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
         parser.add_argument('comment', type=str)
@@ -348,10 +352,6 @@ class AddComment(Resource):
         if (len(_comment) < 4) and (_comment[0] == " " or _comment[len(_comment) - 1] == " "):
             return {'failed': 'Вам не кажется, что комментарий слишком короткий?'}
 
-        _id_client = check_sign(request)
-        if _id_client == -100:
-            return {'failed': 403}
-
         query = "select count(id) from meetings where id = %s;"
         data = (_meet,)
         cursor.execute(query, data)
@@ -361,7 +361,7 @@ class AddComment(Resource):
                     return {'failed': 'Meet is not exist'}
 
         query = "insert into comments values (default, %s, %s, %s, default);"
-        data = (_comment, _id_client, _meet)
+        data = (_comment, _id, _meet)
         cursor.execute(query, data)
         cnx.commit()
 
@@ -372,6 +372,10 @@ class AddComment(Resource):
 
 class GetMeetComments(Resource):
     def get(self):
+        _id = check_sign(request)
+        if _id == -100:
+            return {'success': False}, 403
+
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
         args = parser.parse_args()
@@ -381,10 +385,6 @@ class GetMeetComments(Resource):
         cursor = cnx.cursor(buffered=True)
 
         _meet = args['meet']
-
-        _id_client = check_sign(request)
-        if _id_client == -100:
-            return {'failed': 403}
 
         query = "select * from comments where meetingid = %s"
         data = (_meet,)
@@ -409,7 +409,7 @@ class GetMeetComments(Resource):
                     comment.update({'meetingid': value})
                 if i == 4:
                     comment.update({'rating': value})
-                    comment.update({'isliked': isliked(_id_client, id)})
+                    comment.update({'isliked': isliked(_id, id)})
                 i += 1
             response.append(comment)
 
@@ -420,6 +420,10 @@ class GetMeetComments(Resource):
 
 class RateComment(Resource):
     def post(self):
+        _id = check_sign(request)
+        if _id == -100:
+            return {'success': False}, 403
+
         parser = reqparse.RequestParser()
         parser.add_argument('comment', type=int)
         parser.add_argument('act', type=int)
@@ -432,10 +436,6 @@ class RateComment(Resource):
         _comment = args['comment']
         _act = args['act']
 
-        _id_client = check_sign(request)
-        if _id_client == -100:
-            return {'failed': 403}
-
         query = "select count(idcomments) from comments where idcomments = %s;"
         data = (_comment,)
         cursor.execute(query, data)
@@ -445,7 +445,7 @@ class RateComment(Resource):
                     return {'failed': 'Comment is not exists'}
 
         query = "select count(idratings) from ratings where iduser = %s and idcomment = %s;"
-        data = (_id_client, _comment)
+        data = (_id, _comment)
         cursor.execute(query, data)
         for item in cursor:
             for value in item:
@@ -466,7 +466,7 @@ class RateComment(Resource):
                         data = (_comment,)
                         cursor.execute(query, data)
                         query = "insert into ratings values (default, %s, %s);"
-                        data = (_id_client, _comment)
+                        data = (_id, _comment)
                         cursor.execute(query, data)
                         cnx.commit()
                         return {'success': True}
@@ -474,6 +474,10 @@ class RateComment(Resource):
 
 class RemoveComment(Resource):
     def post(self):
+        _id = check_sign(request)
+        if _id == -100:
+            return {'success': False}, 403
+
         parser = reqparse.RequestParser()
         parser.add_argument('comment', type=int)
         args = parser.parse_args()
@@ -481,10 +485,6 @@ class RemoveComment(Resource):
 
         cnx = get_cnx()
         cursor = cnx.cursor(buffered=True)
-
-        _id = check_sign(request)
-        if _id == -100:
-            return {'failed': 403}
 
         query = "select count(idcomments) from comments where idcomments = %s and ownerid = %s;"
         data = (_comment, _id)
@@ -507,16 +507,16 @@ class RemoveComment(Resource):
 
 class ApproveMeet(Resource):
     def post(self):
+        _id = check_sign(request)
+        if _id == -100:
+            return {'success': False}, 403
+
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
         args = parser.parse_args()
         cnx = get_cnx()
 
         cursor = cnx.cursor(buffered=True)
-
-        _id = check_sign(request)
-        if _id == -100:
-            return {'failed': 403}
 
         _meet = args['meet']
         if checkuser(_id, request):
@@ -565,6 +565,10 @@ class ApproveMeet(Resource):
 
 class DeApproveMeet(Resource):
     def post(self):
+        _id = check_sign(request)
+        if _id == -100:
+            return {'success': False}, 403
+
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
         args = parser.parse_args()
@@ -574,9 +578,6 @@ class DeApproveMeet(Resource):
         cursor = cnx.cursor(buffered=True)
 
         _meet = args['meet']
-        _id = check_sign(request)
-        if _id == -100:
-            return {'failed': 403}
 
         if checkuser(_id, request):
             query = "select ismoderated from meetings where id = %s;"
@@ -605,6 +606,10 @@ class DeApproveMeet(Resource):
 
 class DenyMeet(Resource):
     def post(self):
+        _id = check_sign(request)
+        if _id == -100:
+            return {'success': False}, 403
+
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=int)
         args = parser.parse_args()
@@ -614,9 +619,6 @@ class DenyMeet(Resource):
         cursor = cnx.cursor(buffered=True)
 
         _meet = args['meet']
-        _id = check_sign(request)
-        if _id == -100:
-            return {'failed': 403}
 
         if checkuser(_id, request):
             query = "select isvisible from meetings where id = %s;"
@@ -643,10 +645,9 @@ class DenyMeet(Resource):
 class GetAllMeets(Resource):
     def get(self):
         try:
-
             _id = check_sign(request)
             if _id == -100:
-                return {'failed': 403}
+                return {'success': False}, 403
 
             if checkuser(_id, request):
 
@@ -668,7 +669,7 @@ class GeoPosition(Resource):
     def get(self):
         _id = check_sign(request)
         if _id == -100:
-            return {'failed': 403}
+            return {'success': False}, 403
 
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=str)
@@ -734,6 +735,10 @@ class GeoPosition(Resource):
 
     def post(self):
         try:
+            _id = check_sign(request)
+            if _id == -100:
+                return {'success': False}, 403
+
             parser = reqparse.RequestParser()
             parser.add_argument('lat', type=str)
             parser.add_argument('long', type=str)
@@ -741,10 +746,6 @@ class GeoPosition(Resource):
 
             _lat = args['lat']
             _lon = args['long']
-
-            _id = check_sign(request)
-            if _id == -100:
-                return {'failed': 403}
 
             cnx = get_cnx()
             cursor = cnx.cursor(buffered=True)
@@ -767,9 +768,10 @@ class GeoPosition(Resource):
 
 class getStory(Resource):
     def get(self):
+
         _id = check_sign(request)
         if _id == -100:
-            return {'failed': 403}
+            return {'success': False}, 403
 
         parser = reqparse.RequestParser()
         parser.add_argument('meet', type=str)
@@ -800,7 +802,7 @@ class GetGroupInfo(Resource):
     def get(self):
         _id = check_sign(request)
         if _id == -100:
-            return {'failed': 403}
+            return {'success': False}, 403
 
         if check_vk_viewer_group_role(request):
             launch_params = request.referrer
@@ -820,14 +822,14 @@ class GetByGroup(Resource):
 class getWidget(Resource):
     def get(self):
         try:
+            _id = check_sign(request)
+            if _id == -100:
+                return {'success': False}, 403
+
             parser = reqparse.RequestParser()
             parser.add_argument('meet', type=int)
             args = parser.parse_args()
             _meet = args['meet']
-
-            _id_client = check_sign(request)
-            if _id_client == -100:
-                return {'failed': 403}
 
             cnx = get_cnx()
 
