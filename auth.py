@@ -36,10 +36,7 @@ def check_sign(request):
 
 
 def checkuser(id, request):
-    launch_params = request.referrer
-    launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
-
-    if not str(launch_params.get('vk_user_id')) == str(id):
+    if str(check_sign(request)) != str(id):
         return {'failed': '403'}
 
     cnx = get_cnx()

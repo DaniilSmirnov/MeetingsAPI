@@ -24,12 +24,6 @@ limiter = Limiter(
 )
 
 
-class TestConnection(Resource):
-    def get(self):
-        cnx = get_cnx()
-        return {'success': True}
-
-
 class IsFirst(Resource):
     def get(self):
         try:
@@ -52,10 +46,8 @@ class IsFirst(Resource):
                         data = (_id,)
                         cursor.execute(query, data)
                         cnx.commit()
-
                         return True
-                    if value == 1:
-                        return False
+                    return value == 1
 
         except BaseException:
             return {'success': False}
@@ -826,8 +818,6 @@ class getWidget(Resource):
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
-
-api.add_resource(TestConnection, '/TestConnection')
 
 api.add_resource(IsFirst, '/IsFirst')
 api.add_resource(GetGroupInfo, '/GetGroupInfo')
