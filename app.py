@@ -765,8 +765,7 @@ class getStory(Resource):
                     name = value
                 if i == 1:
                     photo = value
-                    image = prepare_storie(photo, name)
-                    return image
+                    return prepare_storie(photo, name)
                 i += 1
 
 
