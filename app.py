@@ -642,60 +642,26 @@ class GeoPosition(Resource):
         args = parser.parse_args()
 
         _meet = args['meet']
-        dist = []
 
         cnx = get_cnx()
         cursor = cnx.cursor(buffered=True)
-
-        query = "select lat, lon from geoposition where userid = %s;"
-        data = (_id,)
-        cursor.execute(query, data)
-
-        i = 0
-        for item in cursor:
-            lat = 0
-            lon = 0
-            for value in item:
-                if i == 0:
-                    lat = float(value)
-                if i == 1:
-                    lon = float(value)
-                i += 1
-            if lat != 0 and lon != 0:
-                user = (lat, lon)
-            else:
-                return {'failed': 'Мы не можем вас найти'}
-
-        query = "select count(lat) from geoposition where userid in (select idmember from participation where idmeeting = %s and idmember <> %s);"
-        data = (_meet, int(_id))
-        cursor.execute(query, data)
-
-        for item in cursor:
-            for value in item:
-                if int(value == 0):
-                    return {'failed': "Единомышленников поблизости не найдено"}
 
         query = "select lat, lon from geoposition where userid in (select idmember from participation where idmeeting = %s and idmember <> %s)"
         data = (_meet, _id)
         cursor.execute(query, data)
 
-        i = 0
+        response = []
         for item in cursor:
-            lat = 0
-            lon = 0
+            i = 0
+            cord = {}
             for value in item:
                 if i == 0:
-                    lat = float(value)
+                    cord.update({'lat': value})
                 if i == 1:
-                    lon = float(value)
-                    another_user = (lat, lon)
-                    dist.append(int(haversine(user, another_user)))
+                    cord.update({'lon': value})
                 i += 1
 
-        if min(dist) < 1:
-            return {'status': "Ближайший единомышленник находится меньше чем в километре от вас"}
-        else:
-            return {'status': "Ближайший единомышленник находится в " + str(min(dist)) + " км от вас"}
+        return response
 
     def post(self):
         try:
