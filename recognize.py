@@ -1,5 +1,4 @@
 from Levenshtein import jaro_winkler as similarity
-from rank_bm25 import BM25Plus
 
 
 def search(query):
@@ -11,8 +10,6 @@ def search(query):
     for item in subquery:
         query.append(item.replace('\n', ''))
 
-    common = 0
-
     for item in query:
         for word in corpus:
             if item in exceptions:
@@ -21,20 +18,8 @@ def search(query):
                 continue
             if item.lower().find(word) != -1:
                 return True
-            if similarity(item, word) > 0.8:
-                common += similarity(item, word)
-
-    bm25 = BM25Plus(curses)
-    if (" ".join(bm25.get_top_n(query, curses, n=1)[0])) != 'заглушка':
-        common += 1
-
-    common /= 10  # среднее требует доработки
-    if common > 0.2:
-        return True
-    if (common > 0.08) and (common < 0.2):
-        return True
-    if common < 0.08:
-        return False
+            if similarity(item, word) > 0.85:
+                return True
 
 
 corpus = [
@@ -42,8 +27,6 @@ corpus = [
     "блядь", "говно", "мудак", "пидор", "ебля", "ёб", "ебало", "жопа", "ебля",
     "ахуеть", "охуеть", "гандон", "гондон", "падла", "падалюка", "дерьмо", "залупа", "xyй", "huy"]
 
-curses = ['заглушка']
-curses = [doc.split(" ") for doc in curses]
 
 exceptions = ['баллы', 'гандольер', 'матеша', 'Баллы']
 

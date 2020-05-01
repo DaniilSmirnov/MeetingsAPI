@@ -59,7 +59,6 @@ def is_expired(meet):
 
 
 def get_data(cursor):
-
     _ids = []
     for item in cursor:
         i = 0
@@ -82,9 +81,9 @@ def get_data(cursor):
 
 def prepare_meet(cursor, _id_client):
     buf = cursor.fetchall()
+
     data = get_data(buf)
 
-    user = 0
     response = []
 
     for item in buf:
@@ -103,10 +102,11 @@ def prepare_meet(cursor, _id_client):
                 meet.update({'ownerid': value})
                 meet.update({'isowner': value == _id_client})
                 if value > 0:
-                    meet.update({'owner_name': data[user].get('first_name')})
-                    meet.update({'owner_surname': data[user].get('last_name')})
-                    meet.update({'owner_photo': data[user].get('photo_100')})
-                    user += 1
+                    for user in data:
+                        if user.get('id') == value:
+                            meet.update({'owner_name': user.get('first_name')})
+                            meet.update({'owner_surname': user.get('last_name')})
+                            meet.update({'owner_photo': user.get('photo_100')})
                 else:
                     group_data = get_group_data(value * -1)
                     meet.update({'owner_name': group_data[0].get('name')})
@@ -120,7 +120,7 @@ def prepare_meet(cursor, _id_client):
             if i == 7:
                 meet.update({'approved': value == 1})
             if i == 8:
-                meet.update({'photo': str(value)})
+                meet.update({'photo': value.decode()})
 
             i += 1
         response.append(meet)
@@ -139,8 +139,9 @@ def is_liked(id, comment):
 
 
 def compress_blob(image):
-    image = image.split(',')
+    image = image.split(',')  # It's needed because weak frontend code
     image = image[1]
+
     image = base64.b64decode(image)
     corrected = [256 + x if x < 0 else x for x in image]
 
@@ -148,6 +149,6 @@ def compress_blob(image):
     image = image.resize((160, 300), Image.ANTIALIAS)
 
     buffered = BytesIO()
-    image.save(buffered, format="JPEG", optimize=True, quality=75)
+    image.save(buffered, format="JPEG", optimize=True, quality=85)
     image = base64.b64encode(buffered.getvalue())
     return image
