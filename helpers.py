@@ -141,7 +141,7 @@ def is_liked(id, comment):
 
 
 def compress_blob(image):
-    image = image.split(',')
+    image = image.split(',')  # It's needed because weak frontend code
     image = image[1]
 
     image = base64.b64decode(image)
