@@ -7,7 +7,6 @@ from flask_limiter.util import get_remote_address
 from flask_restful import Resource, Api, reqparse
 from helpers import *
 from recognize import search
-from stories import prepare_storie
 
 app = Flask(__name__)
 
