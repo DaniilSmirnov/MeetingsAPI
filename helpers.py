@@ -82,7 +82,7 @@ def get_data(cursor):
 
 def prepare_meet(cursor, _id_client):
     buf = cursor.fetchall()
-    data = get_data(buf)
+    #data = get_data(buf)
 
     user = 0
     response = []
@@ -103,6 +103,8 @@ def prepare_meet(cursor, _id_client):
                 meet.update({'ownerid': value})
                 meet.update({'isowner': value == _id_client})
                 if value > 0:
+                    data = get_user_data(value)
+                    user = 0
                     meet.update({'owner_name': data[user].get('first_name')})
                     meet.update({'owner_surname': data[user].get('last_name')})
                     meet.update({'owner_photo': data[user].get('photo_100')})
