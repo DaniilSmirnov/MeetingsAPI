@@ -141,6 +141,7 @@ def is_liked(id, comment):
 def compress_blob(image):
     image = image.split(',')
     image = image[1]
+
     image = base64.b64decode(image)
     corrected = [256 + x if x < 0 else x for x in image]
 
