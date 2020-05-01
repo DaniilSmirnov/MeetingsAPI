@@ -120,7 +120,7 @@ def prepare_meet(cursor, _id_client):
             if i == 7:
                 meet.update({'approved': value == 1})
             if i == 8:
-                meet.update({'photo': str(value)})
+                meet.update({'photo': value.decode()})
 
             i += 1
         response.append(meet)
