@@ -84,7 +84,6 @@ def prepare_meet(cursor, _id_client):
 
     data = get_data(buf)
 
-    user = -1  # because first from cursor is empty
     response = []
 
     for item in buf:
@@ -103,10 +102,11 @@ def prepare_meet(cursor, _id_client):
                 meet.update({'ownerid': value})
                 meet.update({'isowner': value == _id_client})
                 if value > 0:
-                    meet.update({'owner_name': data[user].get('first_name')})
-                    meet.update({'owner_surname': data[user].get('last_name')})
-                    meet.update({'owner_photo': data[user].get('photo_100')})
-                    user += 1
+                    for user in data:
+                        if user.get('id') == value:
+                            meet.update({'owner_name': user.get('first_name')})
+                            meet.update({'owner_surname': user.get('last_name')})
+                            meet.update({'owner_photo': user.get('photo_100')})
                 else:
                     group_data = get_group_data(value * -1)
                     meet.update({'owner_name': group_data[0].get('name')})
