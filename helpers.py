@@ -59,7 +59,6 @@ def is_expired(meet):
 
 
 def get_data(cursor):
-
     _ids = []
     for item in cursor:
         i = 0
@@ -85,7 +84,7 @@ def prepare_meet(cursor, _id_client):
 
     data = get_data(buf)
 
-    user = -1
+    user = -1  # because first from cursor is empty
     response = []
 
     for item in buf:
