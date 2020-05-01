@@ -88,13 +88,11 @@ class AddMeet(Resource):
             if len(_photo) == 0 or _photo.isspace() or _photo.isdigit():
                 return {'failed': 'Некорректная обложка петиции'}
             if check_url(_description):
-                return {'failed': 'Описание не можем содержать ссылку'}
+                return {'failed': 'Описание не может содержать ссылку'}
 
         if _is_group:
             if check_vk_viewer_group_role(request):
-                launch_params = request.referrer
-                launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
-                _id = int(launch_params.get('vk_group_id')) * -1
+                _id = get_group_id(request)
 
         try:
             cnx = get_cnx()

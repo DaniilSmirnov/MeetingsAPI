@@ -152,3 +152,9 @@ def compress_blob(image):
     image.save(buffered, format="JPEG", optimize=True, quality=85)
     image = base64.b64encode(buffered.getvalue())
     return image
+
+
+def get_group_id(request):
+    launch_params = request.referrer
+    launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
+    return  int(launch_params.get('vk_group_id')) * -1
