@@ -58,31 +58,8 @@ def is_expired(meet):
             return value > 0
 
 
-def get_data(cursor):
-    _ids = []
-    for item in cursor:
-        i = 0
-        for value in item:
-            if i == 3 and value > 0:
-                _ids.append(value)
-            i += 1
-
-    def f(lst, n):
-        return [lst[i:i + n] for i in range(0, len(lst), n)]
-
-    data = []
-
-    _ids = f(_ids, 1000)
-    for item in _ids:
-        data += get_user_data(item)
-
-    return data
-
-
 def prepare_meet(cursor, _id_client):
     buf = cursor.fetchall()
-
-    data = get_data(buf)
 
     response = []
 
@@ -102,15 +79,14 @@ def prepare_meet(cursor, _id_client):
                 meet.update({'ownerid': value})
                 meet.update({'isowner': value == _id_client})
                 if value > 0:
-                    for user in data:
-                        if user.get('id') == value:
-                            meet.update({'owner_name': user.get('first_name')})
-                            meet.update({'owner_surname': user.get('last_name')})
-                            meet.update({'owner_photo': user.get('photo_100')})
+                    user = get_user_data(value)[0]
+                    meet.update({'owner_name': user.get('first_name')})
+                    meet.update({'owner_surname': user.get('last_name')})
+                    meet.update({'owner_photo': user.get('photo_100')})
                 else:
-                    group_data = get_group_data(value * -1)
-                    meet.update({'owner_name': group_data[0].get('name')})
-                    meet.update({'owner_photo': group_data[0].get('photo')})
+                    group_data = get_group_data(value * -1)[0]
+                    meet.update({'owner_name': group_data.get('name')})
+                    meet.update({'owner_photo': group_data.get('photo')})
             if i == 4:
                 meet.update({'members_amount': value})
             if i == 5:
