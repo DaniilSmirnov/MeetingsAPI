@@ -74,7 +74,7 @@ class AddMeet(Resource):
         _photo = args['photo']
         _is_group = args['isGroup']
 
-        if not check_user(_id, request):
+        if not check_user(_id, request):  # disable content check for admins
             if (len(_name) == 0) or _name.isspace() or _name.isdigit() or len(_name) > 45 or search(_name):
                 return {'failed': 'Некорректное название петиции'}
             if len(_description) == 0 or _description.isspace() or _description.isdigit() or len(
@@ -237,7 +237,7 @@ class AddMeetMember(Resource):
             for item in cursor:
                 for value in item:
                     if value != 1:
-                        return {'failed': 'Meet is not exists'}
+                        return {'failed': 'Митинга не существует'}
 
             query = "select count(idmember) from participation where idmember = %s and idmeeting = %s;"
             data = (_id, _meet)
@@ -246,7 +246,7 @@ class AddMeetMember(Resource):
             for item in cursor:
                 for value in item:
                     if value != 0:
-                        return {'failed': 'User is in meeting yet'}
+                        return {'failed': 'Вы уже участник митинга'}
 
             query = "insert into participation values (default, %s, %s);"
             data = (_meet, _id)
