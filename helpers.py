@@ -10,16 +10,14 @@ def check_url(url):
     try:
         if url.find(' ') == -1:
             if url.find('http') == -1:
-                url = 'http://' + url
-            if validators.url(url):
-                return True
+                url = 'http://{0}'.format(url)
+            return validators.url(url)
         else:
             url = url.split(' ')
             for item in url:
                 if item.find('http') == -1:
-                    item = 'http://' + item
-                if validators.url(item):
-                    return True
+                    item = 'http://{0}'.format(item)
+                return validators.url(item)
     except validators.ValidationFailure:
         return False
 
