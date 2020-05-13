@@ -88,9 +88,9 @@ def prepare_meet(cursor, _id_client):
             if i == 4:
                 meet.update({'members_amount': value})
             if i == 5:
-                meet.update({'start': str(value)})
+                meet.update({'start': str(value)[0:-9]})
             if i == 6:
-                meet.update({'finish': str(value)})
+                meet.update({'finish': str(value)[0:-9]})
             if i == 7:
                 meet.update({'approved': value == 1})
             if i == 8:
