@@ -44,7 +44,7 @@ class IsFirst(Resource):
                         cursor.execute(query, data)
                         cnx.commit()
                         return True
-                    return value == 0
+                    return value != 0
 
         except BaseException:
             return {'success': False}
