@@ -372,7 +372,7 @@ class GetMeetComments(Resource):
             for value in item:
                 if i == 0:
                     comment.update({'id': value})
-                    _comment_id = value
+                    comment.update({'isliked': is_liked(_id, value)})
                 if i == 1:
                     comment.update({'comment': value})
                 if i == 2:
@@ -385,7 +385,6 @@ class GetMeetComments(Resource):
                     comment.update({'meetingid': value})
                 if i == 4:
                     comment.update({'rating': value})
-                    comment.update({'isliked': is_liked(_id, _comment_id)})
                 i += 1
             response.append(comment)
 
@@ -689,38 +688,6 @@ class GeoPosition(Resource):
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
-class GetStory(Resource):
-    def get(self):
-
-        if check_sign(request) == -100:
-            return {'success': False}, 403
-
-        parser = reqparse.RequestParser()
-        parser.add_argument('meet', type=str)
-        args = parser.parse_args()
-
-        _meet = args['meet']
-
-        cnx = get_cnx()
-        cursor = cnx.cursor(buffered=True)
-
-        query = 'select name, photo from meetings where id = %s;'
-        data = (_meet,)
-        cursor.execute(query, data)
-
-        i = 0
-        response = {}
-        for item in cursor:
-            for value in item:
-                if i == 0:
-                    response.update({'name': value})
-                if i == 1:
-                    response.update({'photo': value})
-                i += 1
-
-        return response
-
-
 class GetGroupInfo(Resource):
     def get(self):
         _id = check_sign(request)
@@ -728,9 +695,7 @@ class GetGroupInfo(Resource):
             return {'success': False}, 403
 
         if check_vk_viewer_group_role(request):
-            launch_params = request.referrer
-            launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
-            group_id = launch_params.get('vk_group_id')
+            group_id = get_group_id(request)
             data = get_group_data(group_id)
             return {
                 'id': group_id,
@@ -809,7 +774,6 @@ api.add_resource(DeApproveMeet, '/admin/DeApprove')
 api.add_resource(GetAllMeets, '/admin/GetAllMeets')
 api.add_resource(DenyMeet, '/admin/DenyMeet')
 
-api.add_resource(GetStory, '/GetStory')
 api.add_resource(GeoPosition, '/GeoPosition')
 api.add_resource(GetWidget, '/GetWidget')
 
