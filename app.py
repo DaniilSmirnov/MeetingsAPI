@@ -736,7 +736,7 @@ class GetWidget(Resource):
                     if i == 1:
                         meet.update({'title': value})
                     if i == 2:
-                        meet.update({'descr': value})
+                        meet.update({'description': value})
                     if i == 3:
                         meet.update({'button': "Открыть"})
                     if i == 8:
