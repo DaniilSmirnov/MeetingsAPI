@@ -1,6 +1,7 @@
 import vk_api
+from tokens import vk_token
 
-vk_session = vk_api.VkApi(token='239e8c8b239e8c8b239e8c8b6223f0ac3f2239e239e8c8b7e480a25ad6237c98b649b61')
+vk_session = vk_api.VkApi(token=vk_token)
 vk = vk_session.get_api()
 
 

@@ -133,4 +133,4 @@ def compress_blob(image):
 def get_group_id(request):
     launch_params = request.referrer
     launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
-    return  int(launch_params.get('vk_group_id')) * -1
+    return int(launch_params.get('vk_group_id')) * -1

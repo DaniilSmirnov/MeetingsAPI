@@ -4,6 +4,7 @@ from hashlib import sha256
 from hmac import HMAC
 from urllib.parse import urlparse, parse_qsl, urlencode
 from helpers import get_cnx
+from tokens import auth_secret
 
 
 def check_vk_viewer_group_role(request):
@@ -27,7 +28,7 @@ def check_sign(request):
 
     launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
-    if is_valid(query=launch_params, secret="VUc7I09bHOUYWjfFhx20"):
+    if is_valid(query=launch_params, secret=auth_secret):
         return launch_params.get('vk_user_id')
     else:
         return - 100
