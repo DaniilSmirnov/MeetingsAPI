@@ -647,6 +647,7 @@ class GeoPosition(Resource):
                 if i == 1:
                     cord.update({'lon': value})
                 i += 1
+            response.append(cord)
 
         return response
 
