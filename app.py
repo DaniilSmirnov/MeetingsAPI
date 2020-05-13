@@ -490,6 +490,7 @@ class ApproveMeet(Resource):
         cursor = cnx.cursor(buffered=True)
 
         _meet = args['meet']
+
         if check_user(_id, request):
             query = "select ismoderated from meetings where id = %s;"
             data = (_meet,)
@@ -497,33 +498,28 @@ class ApproveMeet(Resource):
             for item in cursor:
                 for value in item:
                     if value == 1:
-                        return {'failed': 'already approved'}
+                        return {'failed': 'Уже одобрено'}
 
             query = "update meetings set ismoderated = 1, approver = %s where id = %s;"
             data = (_id, _meet)
             cursor.execute(query, data)
-            cnx.commit()
 
-            query = "select name, ownerid from meetings where id = %s"
+            query = "select ownerid from meetings where id = %s"
             data = (_meet,)
             cursor.execute(query, data)
             i = 0
             for item in cursor:
                 for value in item:
-                    if i == 0:
-                        name = str(value)
-                    if i == 1:
-                        id = int(value)
-                        query = "insert into participation values (default, %s, %s);"
-                        data = (_meet, id)
-                        cursor.execute(query, data)
-                        query = "update meetings set members_amount = members_amount + 1 where id = %s;"
-                        data = (_meet,)
-                        cursor.execute(query, data)
-                        cnx.commit()
+                    query = "insert into participation values (default, %s, %s);"
+                    data = (_meet, value)
+                    cursor.execute(query, data)
+                    query = "update meetings set members_amount = members_amount + 1 where id = %s;"
+                    data = (_meet,)
+                    cursor.execute(query, data)
 
                     i += 1
 
+            cnx.commit()
             return {'success': True}
         else:
 
@@ -549,14 +545,12 @@ class DeApproveMeet(Resource):
             for item in cursor:
                 for value in item:
                     if value == 0:
-                        return {'failed': 'already deapproved'}
+                        return {'failed': 'Уже скрыт'}
 
             query = "update meetings set ismoderated = 0 where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
-            query = "update meetings set isvisible = 0 where id = %s;"
-            data = (_meet,)
-            cursor.execute(query, data)
+
             cnx.commit()
 
             return {'success': True}
@@ -588,9 +582,9 @@ class DenyMeet(Resource):
             for item in cursor:
                 for value in item:
                     if value == 0:
-                        return {'failed': 'already deapproved'}
+                        return {'failed': 'Уже удален'}
 
-            query = "update meetings set isvisible = 0 where id = %s;"
+            query = "update meetings set isvisible = 0, ismoderated = 0 where id = %s;"
             data = (_meet,)
             cursor.execute(query, data)
             cnx.commit()
@@ -613,7 +607,7 @@ class GetAllMeets(Resource):
                 cnx = get_cnx()
 
                 cursor = cnx.cursor(buffered=True)
-                query = "select * from meetings;"
+                query = "select * from meetings where isvisible = 1;"
                 cursor.execute(query)
 
                 return prepare_meet(cursor, _id)
