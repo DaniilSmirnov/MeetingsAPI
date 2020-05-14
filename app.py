@@ -165,9 +165,9 @@ class GetUserMeets(Resource):
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where finish > current_date() and ismoderated = 1 and id in (select " \
+            query = "select * from meetings where finish > current_date() and ownerid = %s and ismoderated = 1 and id in (select " \
                     "idmeeting from participation where idmember = %s) order by members_amount asc; "
-            data = (_id,)
+            data = (_id, _id)
             cursor.execute(query, data)
 
             return prepare_meet(cursor, _id)

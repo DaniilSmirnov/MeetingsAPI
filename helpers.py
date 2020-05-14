@@ -120,7 +120,7 @@ def compress_blob(image):
     corrected = [256 + x if x < 0 else x for x in image]
 
     image = Image.open(BytesIO(bytes(corrected)))
-    image = image.resize((160, 300), Image.ANTIALIAS)
+    image = image.convert('RGB')
 
     buffered = BytesIO()
     image.save(buffered, format="JPEG", optimize=True, quality=85)
