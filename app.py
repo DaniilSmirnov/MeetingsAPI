@@ -699,7 +699,7 @@ class GetGroupInfo(Resource):
                     'photo': data[0].get('photo_100')
                 }
             else:
-                return {'success': False}, 403
+                return {'success': False}, 200
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
