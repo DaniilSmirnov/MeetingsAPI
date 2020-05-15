@@ -4,6 +4,7 @@ from vkdata import get_user_data, get_group_data
 from PIL import Image
 from io import BytesIO
 import base64
+from urllib.parse import urlparse, parse_qsl, urlencode
 
 
 def check_url(url):

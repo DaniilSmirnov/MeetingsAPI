@@ -165,8 +165,8 @@ class GetUserMeets(Resource):
             cnx = get_cnx()
 
             cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where finish > current_date() and ownerid = %s and ismoderated = 1 and id in (select " \
-                    "idmeeting from participation where idmember = %s) order by members_amount asc; "
+            query = "select * from meetings where (finish > current_date()  and ismoderated = 1 and id in (select " \
+                    "idmeeting from participation where idmember = %s)) or ownerid = %s order by members_amount asc; "
             data = (_id, _id)
             cursor.execute(query, data)
 
@@ -685,20 +685,23 @@ class GeoPosition(Resource):
 
 class GetGroupInfo(Resource):
     def get(self):
-        _id = check_sign(request)
-        if _id == -100:
-            return {'success': False}, 403
+        try:
+            _id = check_sign(request)
+            if _id == -100:
+                return {'success': False}, 403
 
-        if check_vk_viewer_group_role(request):
-            group_id = get_group_id(request)
-            data = get_group_data(group_id)
-            return {
-                'id': group_id,
-                'name': data[0].get('name'),
-                'photo': data[0].get('photo_100')
-            }
-        else:
-            return {'success': False}, 403
+            if check_vk_viewer_group_role(request):
+                group_id = get_group_id(request)
+                data = get_group_data(group_id)
+                return {
+                    'id': group_id,
+                    'name': data[0].get('name'),
+                    'photo': data[0].get('photo_100')
+                }
+            else:
+                return {'success': False}, 403
+        except BaseException as e:
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
 class GetWidget(Resource):
