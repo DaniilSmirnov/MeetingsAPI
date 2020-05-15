@@ -9,7 +9,9 @@ def get_user_data(id):
 
 def get_group_data(id):
     vk = get_service_vk()
-    return vk.groups.getById(group_id=id * -1, fields='photo_100', lang='ru')
+    if id < 0:
+        id *= -1
+    return vk.groups.getById(group_id=id, fields='photo_100', lang='ru')
 
 
 def get_service_vk():
