@@ -57,9 +57,30 @@ def is_expired(meet):
             return value > 0
 
 
+def prepare_data(cursor):
+
+    users = []
+    for item in cursor:
+        i = 0
+        for value in item:
+            if i == 3:
+                users.append(int(value))
+            i += 1
+
+    users = list(set(users))
+    data = get_user_data(users)
+
+    response = {}
+    for item in data:
+        response.update({item.get('id'): item})
+
+    return response
+
+
 def prepare_meet(cursor, _id_client):
     buf = cursor.fetchall()
 
+    user = prepare_data(buf)
     response = []
 
     for item in buf:
@@ -78,10 +99,9 @@ def prepare_meet(cursor, _id_client):
                 meet.update({'ownerid': value})
                 meet.update({'isowner': value == _id_client})
                 if value > 0:
-                    user = get_user_data(value)[0]
-                    meet.update({'owner_name': user.get('first_name')})
-                    meet.update({'owner_surname': user.get('last_name')})
-                    meet.update({'owner_photo': user.get('photo_100')})
+                    meet.update({'owner_name': user.get(value).get('first_name')})
+                    meet.update({'owner_surname': user.get(value).get('last_name')})
+                    meet.update({'owner_photo': user.get(value).get('photo_100')})
                 else:
                     group_data = get_group_data(value * -1)[0]
                     meet.update({'owner_name': group_data.get('name')})
