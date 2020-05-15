@@ -626,8 +626,7 @@ class GetAllMeets(Resource):
 
 class GeoPosition(Resource):
     def get(self):
-        _id = check_sign(request)
-        if _id == -100:
+        if _check_sign(request) == -100:
             return {'success': False}, 403
 
         parser = reqparse.RequestParser()

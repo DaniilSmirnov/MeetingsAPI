@@ -58,7 +58,6 @@ def is_expired(meet):
 
 
 def prepare_data(cursor):
-
     users = []
     for item in cursor:
         i = 0
@@ -134,7 +133,7 @@ def is_liked(id, comment):
 
 
 def compress_blob(image):
-    image = image.split(',')  # It's needed because weak frontend code
+    image = image.split(',')
     image = image[1]
 
     image = base64.b64decode(image)
