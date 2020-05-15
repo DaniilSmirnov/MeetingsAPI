@@ -295,6 +295,12 @@ class RemoveMeetMember(Resource):
             query = "update meetings set members_amount = members_amount -1 where id = %s and members_amount > 0"
             data = (_meet,)
             cursor.execute(query, data)
+            try:
+                query = 'delete from geoposition where userid = %s;'
+                data = (_id,)
+                cursor.execute(query, data)
+            except BaseException:
+                pass  # because user may no have geoposition in meet
             cnx.commit()
 
             return {'success': True}
@@ -633,8 +639,8 @@ class GeoPosition(Resource):
         cnx = get_cnx()
         cursor = cnx.cursor(buffered=True)
 
-        query = "select lat, lon from geoposition where userid in (select idmember from participation where idmeeting = %s and idmember <> %s)"
-        data = (_meet, _id)
+        query = "select lat, lon from geoposition where userid in (select idmember from participation where idmeeting = %s);"
+        data = (_meet,)
         cursor.execute(query, data)
 
         response = []
