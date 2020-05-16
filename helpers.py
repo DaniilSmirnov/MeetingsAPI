@@ -24,7 +24,7 @@ def check_url(url):
 
 
 def get_cnx():
-    cnx = mysql.connector.connect(user='met', password='misha_benich228',
+    cnx = mysql.connector.connect(user='root', password='misha_benich228',
                                   host='0.0.0.0',
                                   database='meets')
 
