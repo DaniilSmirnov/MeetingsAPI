@@ -29,7 +29,7 @@ def check_sign(request):
     launch_params = dict(parse_qsl(urlparse(launch_params).query, keep_blank_values=True))
 
     if is_valid(query=launch_params, secret=auth_secret):
-        return launch_params.get('vk_user_id')
+        return int(launch_params.get('vk_user_id'))
     else:
         return - 100
 

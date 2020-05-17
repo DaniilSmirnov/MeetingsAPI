@@ -5,7 +5,7 @@ from PIL import Image
 from io import BytesIO
 import base64
 from urllib.parse import urlparse, parse_qsl, urlencode
-
+import math
 
 def check_url(url):
     try:
@@ -63,7 +63,8 @@ def prepare_data(cursor):
         i = 0
         for value in item:
             if i == 3:
-                users.append(int(value))
+                if value > 0:
+                    users.append(int(value))
             i += 1
 
     users = list(set(users))
@@ -102,7 +103,7 @@ def prepare_meet(cursor, _id_client):
                     meet.update({'owner_surname': user.get(value).get('last_name')})
                     meet.update({'owner_photo': user.get(value).get('photo_100')})
                 else:
-                    group_data = get_group_data(value * -1)[0]
+                    group_data = get_group_data(value)[0]
                     meet.update({'owner_name': group_data.get('name')})
                     meet.update({'owner_photo': group_data.get('photo')})
             if i == 4:
@@ -143,7 +144,9 @@ def compress_blob(image):
     image = image.convert('RGB')
 
     buffered = BytesIO()
-    image.save(buffered, format="JPEG", optimize=True, quality=85)
+    x, y = image.size
+    image.resize((math.floor(x-50), math.floor(y-20)), Image.ANTIALIAS)
+    image.save(buffered, format="JPEG", optimize=True, quality=70)
     image = base64.b64encode(buffered.getvalue())
     return image
 

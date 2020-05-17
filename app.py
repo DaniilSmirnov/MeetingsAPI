@@ -21,6 +21,11 @@ limiter = Limiter(
 )
 
 
+class Freezer(Resource):
+    def get(self):
+        return "WHAT ARE YOU DOING IN MY FREEZER!?"
+
+
 class IsFirst(Resource):
     def get(self):
         try:
@@ -779,6 +784,8 @@ api.add_resource(DenyMeet, '/admin/DenyMeet')
 
 api.add_resource(GeoPosition, '/GeoPosition')
 api.add_resource(GetWidget, '/GetWidget')
+
+api.add_resource(Freezer, '/')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port='8000')
