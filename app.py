@@ -6,6 +6,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_restful import Resource, Api, reqparse
 from helpers import *
+from database import *
 from recognize import search
 
 app = Flask(__name__)
@@ -33,21 +34,12 @@ class IsFirst(Resource):
             if _id == -100:
                 return {'failed': 403}
 
-            cnx = get_cnx()
-
-            cursor = cnx.cursor(buffered=True)
-
-            query = "select count(idmembers) from members where idmembers = %s;"
             data = (_id,)
-            cursor.execute(query, data)
 
-            for item in cursor:
+            for item in select_query("select count(idmembers) from members where idmembers = %s;", data):
                 for value in item:
                     if value == 0:
-                        query = "insert into members values(%s, default)"
-                        data = (_id,)
-                        cursor.execute(query, data)
-                        cnx.commit()
+                        insert_query("insert into members values(%s, default)", data)
                         return True
                     return value == 0
 
