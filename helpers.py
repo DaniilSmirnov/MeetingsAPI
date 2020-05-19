@@ -73,7 +73,7 @@ def prepare_data(cursor):
 def prepare_meet(cursor, _id_client):
     try:
         buf = cursor.fetchall()
-    except BaseException:
+    except BaseException:  #TODO: remove when all GetMeets methods migrate to offset
         buf = cursor
 
     user = prepare_data(buf)
