@@ -1,7 +1,8 @@
-from Levenshtein import jaro_winkler as similarity
+#from Levenshtein import jaro_winkler as similarity
 
 
 def search(query):
+    return False
     query = query.split(" ")
     subquery = []
     subquery += query

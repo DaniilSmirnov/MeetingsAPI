@@ -7,6 +7,7 @@ import base64
 from urllib.parse import urlparse, parse_qsl, urlencode
 import math
 
+
 def check_url(url):
     try:
         if url.find(' ') == -1:
@@ -24,9 +25,19 @@ def check_url(url):
 
 
 def get_cnx():
-    cnx = mysql.connector.connect(user='root', password='misha_benich228',
-                                  host='0.0.0.0',
-                                  database='meets')
+    try:
+        cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                      host='0.0.0.0',
+                                      database='meets')
+
+    except BaseException:
+        import os
+        os.system('sudo service mysql start')
+
+        cnx = mysql.connector.connect(user='root', password='misha_benich228',
+                                      host='0.0.0.0',
+                                      database='meets')
+
     cnx.set_charset_collation(charset='utf8mb4', collation='utf8mb4_unicode_ci')
 
     return cnx
