@@ -2,7 +2,7 @@ import requests
 import pytest
 from tokens import referer
 
-host = "https://vargasoff.ru:8000/"
+host = "https://suaipocket.ru:1488/"
 headers = {
     'referer': referer}
 
