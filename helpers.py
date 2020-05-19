@@ -71,7 +71,10 @@ def prepare_data(cursor):
 
 
 def prepare_meet(cursor, _id_client):
-    buf = cursor.fetchall()
+    try:
+        buf = cursor.fetchall()
+    except BaseException:
+        buf = cursor
 
     user = prepare_data(buf)
     response = []

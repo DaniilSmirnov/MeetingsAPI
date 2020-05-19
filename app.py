@@ -606,17 +606,10 @@ class GetAllMeets(Resource):
                 return {'success': False}, 403
 
             if check_user(_id, request):
-
-                cnx = get_cnx()
-
-                cursor = cnx.cursor(buffered=True)
-                query = "select * from meetings where isvisible = 1;"
-                cursor.execute(query)
-
-                return prepare_meet(cursor, _id)
+                return prepare_meet(select_query(query="select * from meetings where isvisible = 1", offset=0), _id)
             else:
-
                 return {'success': False}
+
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
