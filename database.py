@@ -1,19 +1,20 @@
 import mysql.connector
+from tokens import database, database_user, database_password
+import os
+
+
+def try_cnx():
+    return mysql.connector.connect(user=database_user, password=database_password,
+                                  host='0.0.0.0',
+                                  database=database)
 
 
 def get_cnx():
     try:
-        cnx = mysql.connector.connect(user='meetings_user', password='misha_benich228',
-                                      host='0.0.0.0',
-                                      database='meets')
-
+        cnx = try_cnx()
     except BaseException:
-        import os
         os.system('sudo service mysql start')
-
-        cnx = mysql.connector.connect(user='meetings_user', password='misha_benich228',
-                                      host='0.0.0.0',
-                                      database='meets')
+        cnx = try_cnx()
 
     cnx.set_charset_collation(charset='utf8mb4', collation='utf8mb4_unicode_ci')
 
