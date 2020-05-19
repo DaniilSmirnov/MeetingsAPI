@@ -139,15 +139,10 @@ class GetMeet(Resource):
             args = parser.parse_args()
             _meet = args['meet']
 
-            cnx = get_cnx()
-
-            cursor = cnx.cursor(buffered=True)
             query = "select * from meetings where id = %s and ismoderated = 1;"
-
             data = (_meet,)
-            cursor.execute(query, data)
 
-            return prepare_meet(cursor, _id)
+            return prepare_meet(select_query(query, data), _id)
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
