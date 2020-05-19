@@ -138,7 +138,7 @@ def compress_blob(image):
 
     buffered = BytesIO()
     x, y = image.size
-    image.resize((math.floor(x-50), math.floor(y-20)), Image.ANTIALIAS)
+    image.resize((math.floor(x - 50), math.floor(y - 20)), Image.ANTIALIAS)
     image.save(buffered, format="JPEG", optimize=True, quality=70)
     image = base64.b64encode(buffered.getvalue())
     return image

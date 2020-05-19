@@ -20,10 +20,11 @@ def get_cnx():
     return cnx
 
 
-def select_query(query, data=None):
+def select_query(query, data=None, offset=None):
     cnx = get_cnx()
     cursor = cnx.cursor()
-
+    if offset is not None and offset != 0:
+        query += "limit " + str(offset) + ", 5"
     if data is not None:
         cursor.execute(query, data)
     else:
