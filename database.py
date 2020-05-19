@@ -13,10 +13,10 @@ def get_cnx():
     try:
         cnx = try_cnx()
     except BaseException:
-        os.system('sudo service mysql start')
+        os.system('sudo service mysql start') #restarting mysql
         cnx = try_cnx()
 
-    cnx.set_charset_collation(charset='utf8mb4', collation='utf8mb4_unicode_ci')
+    cnx.set_charset_collation(charset='utf8mb4', collation='utf8mb4_unicode_ci') #its needed because emoji
 
     return cnx
 
