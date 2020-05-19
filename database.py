@@ -42,5 +42,3 @@ def insert_query(query, data=None):
         cursor.execute(query)
 
     cnx.commit()
-
-    return cursor.fetchall()
