@@ -1,5 +1,5 @@
 import vk_api
-from tokens import vk_token
+from tokens import vk_token, reserve_vk_token
 
 
 def get_user_data(id):
@@ -8,9 +8,9 @@ def get_user_data(id):
 
 
 def get_group_data(id):
-    vk = get_service_vk()
     if id < 0:
         id *= -1
+    vk = get_service_vk()
     return vk.groups.getById(group_id=id, fields='photo_100', lang='ru')
 
 
