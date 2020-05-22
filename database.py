@@ -34,13 +34,13 @@ def select_query(query, data=None, offset=None, decompose=None):
     if decompose is None:
         return cursor.fetchall()
     elif decompose is 'value':
-        return decompose_to_value(cursor.fetchall())
+        return decompose_to_value(cursor)
     elif decompose is 'dict':
-        return decompose_to_dict(cursor.fetchall())
+        return decompose_to_dict(cursor.column_names, cursor)
 
 
-def decompose_to_dict(cursor):
-    keys = list(cursor.column_names)
+def decompose_to_dict(keys, cursor):
+    keys = list(keys)
     response = []
 
     data = cursor.fetchone()

@@ -628,26 +628,11 @@ class GeoPosition(Resource):
 
         _meet = args['meet']
 
-        cnx = get_cnx()
-        cursor = cnx.cursor(buffered=True)
-
-        query = "select lat, lon from geoposition where userid in (select idmember from participation where idmeeting = %s);"
+        query = "select lat, lon from geoposition where userid in " \
+                "(select idmember from participation where idmeeting = %s);"
         data = (_meet,)
-        cursor.execute(query, data)
 
-        response = []
-        for item in cursor:
-            i = 0
-            cord = {}
-            for value in item:
-                if i == 0:
-                    cord.update({'lat': value})
-                if i == 1:
-                    cord.update({'lon': value})
-                i += 1
-            response.append(cord)
-
-        return response
+        return select_query(query=query, data=data, decompose='dict')
 
     def post(self):
         try:
