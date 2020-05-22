@@ -5,18 +5,18 @@ import os
 
 def try_cnx():
     return mysql.connector.connect(user=database_user, password=database_password,
-                                  host='0.0.0.0',
-                                  database=database)
+                                   host='0.0.0.0',
+                                   database=database)
 
 
 def get_cnx():
     try:
         cnx = try_cnx()
     except BaseException:
-        os.system('sudo service mysql start') #restarting mysql
+        os.system('sudo service mysql start')  # restarting mysql
         cnx = try_cnx()
 
-    cnx.set_charset_collation(charset='utf8mb4', collation='utf8mb4_unicode_ci') #its needed because emoji
+    cnx.set_charset_collation(charset='utf8mb4', collation='utf8mb4_unicode_ci')  # its needed because emoji
 
     return cnx
 

@@ -47,7 +47,7 @@ def prepare_data(cursor):
 def prepare_meet(cursor, _id_client):
     try:
         buf = cursor.fetchall()
-    except BaseException:  #TODO: remove when all GetMeets methods migrate to offset
+    except BaseException:  # TODO: remove when all GetMeets methods migrate to offset
         buf = cursor
 
     user = prepare_data(buf)
@@ -98,7 +98,6 @@ def is_member(meet, _id):
 
 
 def is_expired(meet):
-
     query = "select count(id) from meetings where id = %s and current_date > finish;"
     data = (meet,)
 
