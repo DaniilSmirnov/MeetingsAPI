@@ -34,6 +34,18 @@ def select_query(query, data=None, offset=None):
     return cursor.fetchall()
 
 
+def decompose_to_dict(cursor):
+    keys = list(cursor.column_names)
+    response = []
+
+    data = cursor.fetchone()
+    while data is not None:
+        response.append(dict(zip(keys, data)))
+        data = cursor.fetchone()
+
+    return response
+
+
 def insert_query(query, data=None):
     cnx = get_cnx()
     cursor = cnx.cursor()

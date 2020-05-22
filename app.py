@@ -22,6 +22,14 @@ limiter = Limiter(
 )
 
 
+class SelfTest(Resource):
+    def get(self):
+        try:
+            get_cnx()
+        except BaseExceptions:
+            return False
+
+
 class Freezer(Resource):
     def get(self):
         return "WHAT ARE YOU DOING IN MY FREEZER!?"
@@ -601,7 +609,7 @@ class GetAllMeets(Resource):
                 return {'success': False}, 403
 
             if check_user(_id, request):
-                return prepare_meet(select_query(query="select * from meetings where isvisible = 1", offset=0), _id)
+                return prepare_meet(select_query(query="select * from meetings where isvisible = 1"), _id)
             else:
                 return {'success': False}
 
@@ -738,6 +746,8 @@ class GetWidget(Resource):
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
+
+api.add_resource(SelfTest, '/Test')
 
 api.add_resource(IsFirst, '/IsFirst')
 api.add_resource(GetGroupInfo, '/GetGroupInfo')
