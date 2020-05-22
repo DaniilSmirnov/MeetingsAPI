@@ -21,7 +21,7 @@ def get_cnx():
     return cnx
 
 
-def select_query(query, data=None, offset=None):
+def select_query(query, data=None, offset=None, decompose=None):
     cnx = get_cnx()
     cursor = cnx.cursor()
     if offset is not None:
@@ -31,7 +31,12 @@ def select_query(query, data=None, offset=None):
     else:
         cursor.execute(query)
 
-    return cursor.fetchall()
+    if decompose is None:
+        return cursor.fetchall()
+    elif decompose is 'value':
+        return decompose_to_value(cursor.fetchall())
+    elif decompose is 'dict':
+        return decompose_to_dict(cursor.fetchall())
 
 
 def decompose_to_dict(cursor):
