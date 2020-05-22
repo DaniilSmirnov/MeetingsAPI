@@ -122,15 +122,16 @@ class GetMeets(Resource):
             if _id == -100:
                 return {'failed': 403}
 
-            cnx = get_cnx()
+            parser = reqparse.RequestParser()
+            parser.add_argument('offset', type=int)
+            args = parser.parse_args()
 
-            cursor = cnx.cursor(buffered=True)
+            _offset = args['offset']
+
             query = "select * from meetings where finish > current_date() and ismoderated = 1 order by members_amount " \
                     "asc;"
 
-            cursor.execute(query)
-
-            return prepare_meet(cursor, _id)
+            return prepare_meet(select_query(query=query, offset=_offset), _id)
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
