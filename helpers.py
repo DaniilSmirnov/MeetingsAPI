@@ -24,32 +24,6 @@ def check_url(url):
         return False
 
 
-def is_member(meet, id):
-    cnx = get_cnx()
-
-    cursor = cnx.cursor(buffered=True)
-    query = "select idmeeting from participation where idmeeting = %s and idmember = %s; "
-    data = (meet, id)
-    cursor.execute(query, data)
-
-    for item in cursor:
-        for value in item:
-            return value > 0
-
-
-def is_expired(meet):
-    cnx = get_cnx()
-
-    cursor = cnx.cursor(buffered=True)
-    query = "select count(id) from meetings where id = %s and current_date > finish;"
-    data = (meet,)
-    cursor.execute(query, data)
-
-    for item in cursor:
-        for value in item:
-            return value > 0
-
-
 def prepare_data(cursor):
     users = []
     for item in cursor:
@@ -110,14 +84,25 @@ def prepare_meet(cursor, _id_client):
 
 
 def is_liked(id, comment):
-    cnx = get_cnx()
-    cursor = cnx.cursor()
     query = "select count(idratings) from ratings where iduser = %s and idcomment = %s;"
     data = (id, comment)
-    cursor.execute(query, data)
-    for item in cursor:
-        for value in item:
-            return value == 1
+
+    return select_query(query=query, data=data, decompose=value) == 1
+
+
+def is_member(meet, id):
+    query = "select idmeeting from participation where idmeeting = %s and idmember = %s; "
+    data = (meet, id)
+
+    return select_query(query=query, data=data, decompose=value) > 0
+
+
+def is_expired(meet):
+
+    query = "select count(id) from meetings where id = %s and current_date > finish;"
+    data = (meet,)
+
+    return select_query(query=query, data=data, decompose=value) > 0
 
 
 def compress_blob(image):
