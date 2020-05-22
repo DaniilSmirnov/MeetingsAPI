@@ -87,21 +87,29 @@ def is_liked(_id, comment):
     query = "select count(idratings) from ratings where iduser = %s and idcomment = %s;"
     data = (_id, comment)
 
-    return select_query(query=query, data=data, decompose='value') == 1
+    try:
+        return select_query(query=query, data=data, decompose='value') == 1
+    except BaseException:
+        return False
 
 
 def is_member(meet, _id):
     query = "select idmeeting from participation where idmeeting = %s and idmember = %s; "
     data = (meet, _id)
-
-    return select_query(query=query, data=data, decompose='value') > 0
+    try:
+        return select_query(query=query, data=data, decompose='value') > 0
+    except BaseException:
+        return False
 
 
 def is_expired(meet):
     query = "select count(id) from meetings where id = %s and current_date > finish;"
     data = (meet,)
 
-    return select_query(query=query, data=data, decompose='value') > 0
+    try:
+        return select_query(query=query, data=data, decompose='value') > 0
+    except BaseException:
+        return False
 
 
 def compress_blob(image):

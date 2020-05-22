@@ -52,11 +52,7 @@ def decompose_to_dict(keys, cursor):
 
 
 def decompose_to_value(cursor):
-    try:
-        buf = cursor.fetchone()[0]
-        return buf
-    except BaseException:
-        return 0
+    return cursor.fetchone()[0]
 
 
 def insert_query(query, data=None):
