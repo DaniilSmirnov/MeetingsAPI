@@ -44,12 +44,12 @@ class IsFirst(Resource):
 
             data = (_id,)
 
-            for item in select_query("select count(idmembers) from members where idmembers = %s;", data):
-                for value in item:
-                    if value == 0:
-                        insert_query("insert into members values(%s, default)", data)
-                        return True
-                    return value == 0
+            if select_query(query="select count(idmembers) from members where idmembers = %s;",
+                            data=data, decompose=value) == 0:
+                insert_query("insert into members values(%s, default)", data)
+                return True
+            else:
+                return value == 0
 
         except BaseException:
             return {'success': False}
