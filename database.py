@@ -46,6 +46,10 @@ def decompose_to_dict(cursor):
     return response
 
 
+def decompose_to_value(cursor):
+    return cursor.fetchone()[0]
+
+
 def insert_query(query, data=None):
     cnx = get_cnx()
     cursor = cnx.cursor()
