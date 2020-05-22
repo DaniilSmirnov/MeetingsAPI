@@ -78,42 +78,33 @@ def prepare_meet(cursor, _id_client):
 
     user = prepare_data(buf)
     response = []
-
-    for item in buf:
-        i = 0
+    for row in buf:
         meet = {}
-        for value in item:
-            if i == 0:
-                meet.update({'id': value})
-                meet.update({'ismember': is_member(value, _id_client)})
-                meet.update({'isexpired': is_expired(value)})
-            if i == 1:
-                meet.update({'name': value})
-            if i == 2:
-                meet.update({'description': value})
-            if i == 3:
-                meet.update({'ownerid': value})
-                meet.update({'isowner': value == _id_client})
-                if value > 0:
-                    meet.update({'owner_name': user.get(value).get('first_name')})
-                    meet.update({'owner_surname': user.get(value).get('last_name')})
-                    meet.update({'owner_photo': user.get(value).get('photo_100')})
-                else:
-                    group_data = get_group_data(value)[0]
-                    meet.update({'owner_name': group_data.get('name')})
-                    meet.update({'owner_photo': group_data.get('photo')})
-            if i == 4:
-                meet.update({'members_amount': value})
-            if i == 5:
-                meet.update({'start': str(value)[0:-9]})
-            if i == 6:
-                meet.update({'finish': str(value)[0:-9]})
-            if i == 7:
-                meet.update({'approved': value == 1})
-            if i == 8:
-                meet.update({'photo': value.decode()})
 
-            i += 1
+        meet.update({'id': row[0]})
+        meet.update({'ismember': is_member(row[0], _id_client)})
+        meet.update({'isexpired': is_expired(row[0])})
+        meet.update({'name': row[1]})
+        meet.update({'description': row[2]})
+
+        _id = row[3]
+        meet.update({'ownerid': _id})
+        meet.update({'isowner': _id == _id_client})
+        if _id > 0:
+            meet.update({'owner_name': user.get(_id).get('first_name')})
+            meet.update({'owner_surname': user.get(_id).get('last_name')})
+            meet.update({'owner_photo': user.get(_id).get('photo_100')})
+        else:
+            group_data = get_group_data(_id)[0]
+            meet.update({'owner_name': group_data.get('name')})
+            meet.update({'owner_photo': group_data.get('photo')})
+
+        meet.update({'members_amount': row[4]})
+        meet.update({'start': str(row[5])[0:-9]})
+        meet.update({'finish': str(row[6])[0:-9]})
+        meet.update({'approved': row[7] == 1})
+        meet.update({'photo': row[8].decode()})
+
         response.append(meet)
     return response
 
