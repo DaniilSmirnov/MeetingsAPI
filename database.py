@@ -23,7 +23,7 @@ def get_cnx():
 
 def select_query(query, data=None, offset=None, decompose=None):
     cnx = get_cnx()
-    cursor = cnx.cursor()
+    cursor = cnx.cursor(buffered=True)
     if offset is not None:
         query += " limit " + str(offset) + ",5"
     if data is not None:
@@ -33,9 +33,9 @@ def select_query(query, data=None, offset=None, decompose=None):
 
     if decompose is None:
         return cursor.fetchall()
-    elif decompose is 'value':
+    if decompose == 'value':
         return decompose_to_value(cursor)
-    elif decompose is 'dict':
+    if decompose == 'dict':
         return decompose_to_dict(cursor.column_names, cursor)
 
 
@@ -52,7 +52,11 @@ def decompose_to_dict(keys, cursor):
 
 
 def decompose_to_value(cursor):
-    return cursor.fetchone()[0]
+    try:
+        buf = cursor.fetchone()[0]
+        return buf
+    except BaseException:
+        return 0
 
 
 def insert_query(query, data=None):
