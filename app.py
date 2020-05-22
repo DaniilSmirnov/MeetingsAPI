@@ -584,11 +584,8 @@ class DenyMeet(Resource):
         if check_user(_id, request):
             query = "select isvisible from meetings where id = %s;"
             data = (_meet,)
-            cursor.execute(query, data)
-            for item in cursor:
-                for value in item:
-                    if value == 0:
-                        return {'failed': 'Уже удален'}
+            if select_query(query=query, data=data, decompose='value') == 0:
+                return {'failed': 'Уже удален'}
 
             query = "update meetings set isvisible = 0, ismoderated = 0 where id = %s;"
             data = (_meet,)
