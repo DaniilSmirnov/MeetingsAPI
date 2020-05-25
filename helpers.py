@@ -55,29 +55,26 @@ def prepare_meet(cursor, _id_client):
     for row in buf:
         meet = {}
 
-        meet.update({'id': row[0]})
-        meet.update({'ismember': is_member(row[0], _id_client)})
-        meet.update({'isexpired': is_expired(row[0])})
-        meet.update({'name': row[1]})
-        meet.update({'description': row[2]})
-
         _id = row[3]
-        meet.update({'ownerid': _id})
-        meet.update({'isowner': _id == _id_client})
         if _id > 0:
-            meet.update({'owner_name': user.get(_id).get('first_name')})
-            meet.update({'owner_surname': user.get(_id).get('last_name')})
-            meet.update({'owner_photo': user.get(_id).get('photo_100')})
+            meet.update({'owner_name': user.get(_id).get('first_name'),
+                         'owner_surname': user.get(_id).get('last_name'),
+                         'owner_photo': user.get(_id).get('photo_100')})
         else:
             group_data = get_group_data(_id)[0]
-            meet.update({'owner_name': group_data.get('name')})
-            meet.update({'owner_photo': group_data.get('photo')})
+            meet.update({'owner_name': group_data.get('name'),
+                         'owner_photo': group_data.get('photo')})
 
-        meet.update({'members_amount': row[4]})
-        meet.update({'start': str(row[5])[0:-9]})
-        meet.update({'finish': str(row[6])[0:-9]})
-        meet.update({'approved': row[7] == 1})
-        meet.update({'photo': row[8].decode()})
+        meet.update({'id': row[0],
+                     'ismember': is_member(row[0], _id_client),
+                     'isexpired': is_expired(row[0]),
+                     'name': row[1],
+                     'description': row[2],
+                     'ownerid': _id,
+                     'isowner': _id == _id_client,
+                     'members_amount': row[4],
+                     'approved': row[7] == 1,
+                     'photo': row[8].decode()})
 
         response.append(meet)
     return response
@@ -96,6 +93,7 @@ def is_liked(_id, comment):
 def is_member(meet, _id):
     query = "select idmeeting from participation where idmeeting = %s and idmember = %s; "
     data = (meet, _id)
+
     try:
         return select_query(query=query, data=data, decompose='value') > 0
     except BaseException:
