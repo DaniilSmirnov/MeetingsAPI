@@ -85,11 +85,6 @@ class AddMeet(Resource):
             if len(_description) == 0 or _description.isspace() or _description.isdigit() or len(
                     _description) > 254 or search(_description):
                 return {'failed': 'Некорректное описание петиции'}
-            if len(_start) == 0 or _start.isspace() or _start == 'undefined:00' or _start == '0000-00-00 00:00:00:00':
-                return {'failed': 'Некорректная дата начала петиции'}
-            if len(_finish) == 0 or _finish.isspace() or str(
-                    _finish) == 'undefined:00' or _finish == '0000-00-00 00:00:00:00':
-                return {'failed': 'Некорректная дата окончания петиции'}
             if len(_photo) == 0 or _photo.isspace() or _photo.isdigit():
                 return {'failed': 'Некорректная обложка петиции'}
             if check_url(_description):
