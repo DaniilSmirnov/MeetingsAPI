@@ -295,7 +295,7 @@ class RemoveMeetMember(Resource):
                 cursor.execute(query, data)
 
                 cnx.commit()
-            except BaseException: # because the user may not have saved the geolocation
+            except BaseException:  # because the user may not have saved the geolocation
                 cnx.commit()
 
             return {'success': True}
@@ -369,20 +369,17 @@ class GetMeetComments(Resource):
         user = prepare_data(buf)
 
         for row in buf:
-            comment = {}
             data = user.get(row[2])
 
-            comment.update({'id': value,
-                            'isliked': is_liked(_id, row[0]),
-                            'comment': row[1],
-                            'ownerid': row[2],
-                            'owner_name': data.get('first_name'),
-                            'owner_surname': data.get('last_name'),
-                            'owner_photo': data.get('photo_100'),
-                            'meetingid': row[3],
-                            'rating': row[4]})
-
-            response.append(comment)
+            response.append({'id': value,
+                             'isliked': is_liked(_id, row[0]),
+                             'comment': row[1],
+                             'ownerid': row[2],
+                             'owner_name': data.get('first_name'),
+                             'owner_surname': data.get('last_name'),
+                             'owner_photo': data.get('photo_100'),
+                             'meetingid': row[3],
+                             'rating': row[4]})
 
         return response
 
