@@ -80,13 +80,10 @@ class AddMeet(Resource):
         _is_group = args['isGroup']
 
         if not check_user(_id, request):  # disable content check for admins
-            if (len(_name) == 0) or _name.isspace() or _name.isdigit() or len(_name) > 45 or search(_name):
+            if _name.isspace() or _name.isdigit() or len(_name) > 45 or search(_name):
                 return {'failed': 'Некорректное название петиции'}
-            if len(_description) == 0 or _description.isspace() or _description.isdigit() or len(
-                    _description) > 254 or search(_description):
+            if _description.isspace() or _description.isdigit() or len(_description) > 254 or search(_description):
                 return {'failed': 'Некорректное описание петиции'}
-            if len(_photo) == 0 or _photo.isspace() or _photo.isdigit():
-                return {'failed': 'Некорректная обложка петиции'}
             if check_url(_description):
                 return {'failed': 'Описание не может содержать ссылку'}
 
@@ -324,11 +321,9 @@ class AddComment(Resource):
 
         if search(_comment) or _comment.isspace() or _comment.isdigit():
             return {'failed': 'Некорректный текст комментария'}
-        if (_comment.find(" ") == -1) and (len(_comment) > 15) or (len(_comment) > 45):
-            return {'failed': 'Некорректный текст комментария'}
         if check_url(_comment):
             return {'failed': 'Нельзя отправлять ссылки в комментарии'}
-        if (len(_comment) < 4) and (_comment[0] == " " or _comment[len(_comment) - 1] == " "):
+        if len(_comment) < 4:
             return {'failed': 'Вам не кажется, что комментарий слишком короткий?'}
 
         query = "select count(id) from meetings where id = %s;"
