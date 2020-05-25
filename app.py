@@ -374,9 +374,9 @@ class GetMeetComments(Resource):
                             'isliked': is_liked(_id, row[0]),
                             'comment': row[1],
                             'ownerid': row[2],
-                            'owner_name': data[0].get('first_name'),
-                            'owner_surname': data[0].get('last_name'),
-                            'owner_photo': data[0].get('photo_100'),
+                            'owner_name': data.get('first_name'),
+                            'owner_surname': data.get('last_name'),
+                            'owner_photo': data.get('photo_100'),
                             'meetingid': row[3],
                             'rating': row[4]})
 
