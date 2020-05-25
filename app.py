@@ -363,26 +363,23 @@ class GetMeetComments(Resource):
 
         response = []
         cursor.execute(query, data)
-        for item in cursor:
-            i = 0
+        buf = cursor.fetchall()
+        user = prepare_data(buf)
+
+        for row in buf:
             comment = {}
-            for value in item:
-                if i == 0:
-                    comment.update({'id': value})
-                    comment.update({'isliked': is_liked(_id, value)})
-                if i == 1:
-                    comment.update({'comment': value})
-                if i == 2:
-                    data = get_user_data(value)
-                    comment.update({'ownerid': value})
-                    comment.update({'owner_name': data[0].get('first_name')})
-                    comment.update({'owner_surname': data[0].get('last_name')})
-                    comment.update({'owner_photo': data[0].get('photo_100')})
-                if i == 3:
-                    comment.update({'meetingid': value})
-                if i == 4:
-                    comment.update({'rating': value})
-                i += 1
+            data = user.get(row[2])
+
+            comment.update({'id': value,
+                            'isliked': is_liked(_id, row[0]),
+                            'comment': row[1],
+                            'ownerid': row[2],
+                            'owner_name': data[0].get('first_name'),
+                            'owner_surname': data[0].get('last_name'),
+                            'owner_photo': data[0].get('photo_100'),
+                            'meetingid': row[3],
+                            'rating': row[4]})
+
             response.append(comment)
 
         return response
