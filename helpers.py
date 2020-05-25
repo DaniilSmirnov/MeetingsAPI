@@ -24,12 +24,12 @@ def check_url(url):
         return False
 
 
-def prepare_data(cursor):
+def prepare_data(cursor,pos):
     users = []
     for item in cursor:
         i = 0
         for value in item:
-            if i == 3:
+            if i == pos:
                 if value > 0:
                     users.append(int(value))
             i += 1
@@ -50,7 +50,7 @@ def prepare_meet(cursor, _id_client):
     except BaseException:  # TODO: remove when all GetMeets methods migrate to offset
         buf = cursor
 
-    user = prepare_data(buf)
+    user = prepare_data(buf, 3)
     response = []
     for row in buf:
         meet = {}

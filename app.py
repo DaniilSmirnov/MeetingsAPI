@@ -349,39 +349,41 @@ class GetMeetComments(Resource):
         _id = check_sign(request)
         if _id == -100:
             return {'success': False}, 403
+        try:
+            parser = reqparse.RequestParser()
+            parser.add_argument('meet', type=int)
+            args = parser.parse_args()
 
-        parser = reqparse.RequestParser()
-        parser.add_argument('meet', type=int)
-        args = parser.parse_args()
+            cnx = get_cnx()
 
-        cnx = get_cnx()
+            cursor = cnx.cursor(buffered=True)
 
-        cursor = cnx.cursor(buffered=True)
+            _meet = args['meet']
 
-        _meet = args['meet']
+            query = "select * from comments where meetingid = %s"
+            data = (_meet,)
 
-        query = "select * from comments where meetingid = %s"
-        data = (_meet,)
+            response = []
+            cursor.execute(query, data)
+            buf = cursor.fetchall()
+            user = prepare_data(buf, 2)
 
-        response = []
-        cursor.execute(query, data)
-        buf = cursor.fetchall()
-        user = prepare_data(buf)
+            for row in buf:
+                data = user.get(row[2])
 
-        for row in buf:
-            data = user.get(row[2])
+                response.append({'id': row[0],
+                                 'isliked': is_liked(_id, row[0]),
+                                 'comment': row[1],
+                                 'ownerid': row[2],
+                                 'owner_name': data.get('first_name'),
+                                 'owner_surname': data.get('last_name'),
+                                 'owner_photo': data.get('photo_100'),
+                                 'meetingid': row[3],
+                                 'rating': row[4]})
 
-            response.append({'id': value,
-                             'isliked': is_liked(_id, row[0]),
-                             'comment': row[1],
-                             'ownerid': row[2],
-                             'owner_name': data.get('first_name'),
-                             'owner_surname': data.get('last_name'),
-                             'owner_photo': data.get('photo_100'),
-                             'meetingid': row[3],
-                             'rating': row[4]})
-
-        return response
+            return response
+        except BaseException as e:
+            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
 class RateComment(Resource):
