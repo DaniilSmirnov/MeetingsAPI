@@ -288,13 +288,15 @@ class RemoveMeetMember(Resource):
             query = "update meetings set members_amount = members_amount -1 where id = %s and members_amount > 0"
             data = (_meet,)
             cursor.execute(query, data)
+
             try:
                 query = 'delete from geoposition where userid = %s;'
                 data = (_id,)
                 cursor.execute(query, data)
-            except BaseException:
-                pass  # because user may no have geoposition in meet
-            cnx.commit()
+
+                cnx.commit()
+            except BaseException: # because the user may not have saved the geolocation
+                cnx.commit()
 
             return {'success': True}
         except BaseException:
