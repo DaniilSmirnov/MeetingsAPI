@@ -1,13 +1,14 @@
-from auth import *
+from modules.auth import *
 from flask import Flask
 from flask import request
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_restful import Resource, Api, reqparse
-from helpers import *
-from database import *
-from recognize import search
+from modules.helpers import *
+from modules.database import *
+from modules.recognize import search
+from user.user_functions import get_user
 
 app = Flask(__name__)
 
@@ -22,37 +23,20 @@ limiter = Limiter(
 )
 
 
-class SelfTest(Resource):
+@app.before_request
+def check_auth():
+    if str(request.method) in ['OPTIONS']:
+        return 'ok', 200
+
+    if not check_sign(request):
+        return 'YOU SHOULD NOT PASS!', 403
+
+
+class GetStartPage(Resource):
     def get(self):
-        try:
-            get_cnx()
-        except BaseExceptions:
-            return False
+        _id = check_sign(request)
 
-
-class Freezer(Resource):
-    def get(self):
-        return "WHAT ARE YOU DOING IN MY FREEZER!?"
-
-
-class IsFirst(Resource):
-    def get(self):
-        try:
-            _id = check_sign(request)
-            if _id == -100:
-                return {'failed': 403}
-
-            data = (_id,)
-
-            if select_query(query="select count(idmembers) from members where idmembers = %s;",
-                            data=data, decompose='value') == 0:
-                insert_query("insert into members values(%s, default)", data)
-                return True
-            else:
-                return False
-
-        except BaseException:
-            return {'success': False}
+        return {'user': get_user(_id)}
 
 
 class AddMeet(Resource):
@@ -718,8 +702,6 @@ class GetWidget(Resource):
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
 
-api.add_resource(SelfTest, '/Test')
-
 api.add_resource(IsFirst, '/IsFirst')
 api.add_resource(GetGroupInfo, '/GetGroupInfo')
 
@@ -745,8 +727,6 @@ api.add_resource(DenyMeet, '/admin/DenyMeet')
 
 api.add_resource(GeoPosition, '/GeoPosition')
 api.add_resource(GetWidget, '/GetWidget')
-
-api.add_resource(Freezer, '/')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port='8000')
