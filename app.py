@@ -9,6 +9,7 @@ from modules.helpers import *
 from modules.database import *
 from modules.recognize import search
 from user.user_functions import get_user
+from meetings.meetings_functions import get_meet
 
 app = Flask(__name__)
 
@@ -100,14 +101,43 @@ class GetMeets(Resource):
 
             parser = reqparse.RequestParser()
             parser.add_argument('offset', type=int)
+            parser.add_argument('needExpired', type=int)
+            parser.add_argument('needOwned', type=int)
+            parser.add_argument('needParticipated', type=int)
             args = parser.parse_args()
 
             _offset = args['offset']
+            _needParticipated = args['needParticipated']
+            _needExpired = args['needExpired']
+            _needOwned = args['needOwned']
+
+            cursor = cnx.cursor(buffered=True)
+
+            data = None
 
             query = "select * from meetings where finish > current_date() and ismoderated = 1 order by members_amount " \
                     "asc;"
 
-            return prepare_meet(select_query(query=query, offset=_offset), _id)
+            if needParticipated:
+                query = "select * from meetings where (finish > current_date()  and ismoderated = 1 and id in (select " \
+                        "idmeeting from participation where idmember = %s)) or ownerid = %s order by members_amount asc; "
+                data = (_id, _id)
+
+            if _needExpired:
+                query = "select * from meetings where finish < current_date() and ismoderated = 1 and id in (select " \
+                        "idmeeting from participation where idmember = %s) order by members_amount asc; "
+                data = (_id,)
+
+            if _needOwned:
+                query = "select * from meetings where ownerid = %s;"
+                data = (_id,)
+
+            if data is None:
+                cursor.execute(query)
+            else:
+                cursor.execute(query, data)
+
+            return generate_meet_object(cursor, _id)
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 
@@ -124,69 +154,7 @@ class GetMeet(Resource):
             args = parser.parse_args()
             _meet = args['meet']
 
-            query = "select * from meetings where id = %s and ismoderated = 1;"
-            data = (_meet,)
-
-            return prepare_meet(select_query(query, data), _id)
-        except BaseException as e:
-            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
-
-
-class GetUserMeets(Resource):
-    def get(self):
-        try:
-            _id = check_sign(request)
-            if _id == -100:
-                return {'failed': 403}
-
-            cnx = get_cnx()
-
-            cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where (finish > current_date()  and ismoderated = 1 and id in (select " \
-                    "idmeeting from participation where idmember = %s)) or ownerid = %s order by members_amount asc; "
-            data = (_id, _id)
-            cursor.execute(query, data)
-
-            return prepare_meet(cursor, _id)
-        except BaseException as e:
-            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
-
-
-class GetOwneredMeets(Resource):
-    def get(self):
-        try:
-            _id = check_sign(request)
-            if _id == -100:
-                return {'success': False}, 403
-
-            cnx = get_cnx()
-
-            cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where ownerid = %s;"
-            data = (_id,)
-            cursor.execute(query, data)
-
-            return prepare_meet(cursor, _id)
-        except BaseException as e:
-            return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
-
-
-class GetExpiredUserMeets(Resource):
-    def get(self):
-        try:
-            _id = check_sign(request)
-            if _id == -100:
-                return {'success': False}, 403
-
-            cnx = get_cnx()
-
-            cursor = cnx.cursor(buffered=True)
-            query = "select * from meetings where finish < current_date() and ismoderated = 1 and id in (select " \
-                    "idmeeting from participation where idmember = %s) order by members_amount asc; "
-            data = (_id,)
-            cursor.execute(query, data)
-
-            return prepare_meet(cursor, _id)
+            return get_meet(_meet, _id)
         except BaseException as e:
             return {'failed': 'Произошла ошибка на сервере. Сообщите об этом.', 'error': str(e)}
 

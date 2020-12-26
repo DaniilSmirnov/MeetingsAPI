@@ -4,14 +4,14 @@ from tokens import vk_token, reserve_vk_token
 
 def get_user_data(id):
     vk = get_service_vk()
-    return vk.users.get(user_ids=id, fields='first_name,last_name,photo_100', lang='ru')
+    return vk.users.get(user_ids=id, fields='first_name,last_name,photo_100', lang='ru')[0]
 
 
 def get_group_data(id):
     if id < 0:
         id *= -1
     vk = get_service_vk()
-    return vk.groups.getById(group_id=id, fields='photo_100', lang='ru')
+    return vk.groups.getById(group_id=id, fields='photo_100', lang='ru')[0]
 
 
 def get_service_vk():

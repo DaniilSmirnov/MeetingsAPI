@@ -1,4 +1,5 @@
 from modules.database import get_cnx, get_value
+from modules.vkdata import get_user_data, get_group_data
 
 
 def get_id(_id):
@@ -35,3 +36,18 @@ def create_user():
     query = 'insert into members values(%s, default);'
     cursor.execute(query, data)
     cnx.commit()
+
+
+def get_owner(_id):
+    meet = {}
+    if _id > 0:
+        meet.update({'ownerId': _id,
+                     'ownerName': get_user_data(_id).get('first_name'),
+                     'ownerSurname': get_user_data(_id).get('last_name'),
+                     'ownerPhoto': get_user_data(_id).get('photo_100')})
+    else:
+        meet.update({'ownerId': _id,
+                     'ownerName': get_group_data.get('name'),
+                     'ownerPhoto': get_group_data.get('photo_100')})
+
+    return meet

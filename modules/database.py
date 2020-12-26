@@ -1,6 +1,5 @@
 import mysql.connector
 from tokens import database, database_user, database_password
-import os
 
 
 def try_cnx():
