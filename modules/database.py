@@ -33,3 +33,15 @@ def get_dict(cursor, keys):
         return response[0]
     else:
         return response
+
+
+def get_array(cursor, keys):
+    keys = list(keys)
+    response = []
+
+    data = cursor.fetchone()
+    while data is not None:
+        response.append(dict(zip(keys, data)))
+        data = cursor.fetchone()
+
+    return response
